@@ -1,0 +1,21 @@
+name,price,time,requirements
+Bruschetta,6,5,pan;burner
+Caprese Salad,8,3,cutting_board;knife
+Garlic Bread,5,4,oven
+Soup of the Day,7,10,pot;burner
+Caesar Salad,9,5,cutting_board;knife;bowl
+Carbonara,12,15,pot;pan;burner:2
+Margherita Pizza,10,12,oven;cutting_board
+Risotto ai Funghi,14,20,pot;pan;burner:2
+Grilled Salmon,16,18,grill;pan
+Chicken Parmesan,13,16,oven;pan;cutting_board
+Lasagna,14,25,oven;pot;pan
+Steak Medium Rare,18,15,grill;pan
+Seafood Pasta,15,18,pot;pan;burner:2
+Eggplant Parmigiana,12,20,oven;pan;cutting_board
+Lamb Chops,20,22,grill;pan;oven
+Tiramisu,8,10,bowl;mixer
+Panna Cotta,7,8,pot;burner
+Chocolate Fondant,9,15,oven;bowl;mixer
+Gelato Selection,6,2,bowl
+Fruit Tart,8,12,oven;bowl;cutting_board
