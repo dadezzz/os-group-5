@@ -1,3 +1,5 @@
+# Clangd cache folder.
+.cache/
 .env
 build/
-output/
+submission/
