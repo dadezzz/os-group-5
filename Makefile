@@ -30,7 +30,8 @@ build/restaurant: $(OBJECTS) build/link_flags.txt
 	@echo "LD $@"
 	@$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
-build/objects/%.o: src/%.c build/compile_flags.txt
+# Create object and compile_commands files for each source file.
+build/objects/%.o build/objects/%.json: src/%.c build/compile_flags.txt
 	@echo "CC $@"
 	@mkdir -p $(dir $@)
 	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@

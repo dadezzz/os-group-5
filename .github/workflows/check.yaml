@@ -3,13 +3,13 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
 
 jobs:
-  check-yamllint:
+  check:
     runs-on: ubuntu-24.04
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6.0.2
       - name: Build
-        run: CC=clang make build
+        run: CC=clang make build -j $(nproc)
       - name: Clang tidy
         run: make clang-tidy/check
       - name: Clang format
