@@ -1,0 +1,17 @@
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.ref }}-${{ github.workflow }}
+
+jobs:
+  check-prettier:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run prettier
+        run: npx prettier --check .
+
+"on":
+  pull_request:
+    branches:
+      - main
