@@ -86,6 +86,9 @@ submission: Makefile src/ bootstrap.sh status.sh
 	@cp -vr Makefile bootstrap.sh status.sh src/ submission/code/
 	@# cp report.pdf submission/
 
+format: clang-format/fix
+	npx prettier -w .
+
 clang-format/fix:
 	@clang-format -i $(SOURCES)
 clang-format/check:
