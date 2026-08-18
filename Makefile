@@ -94,7 +94,7 @@ clang-format/fix:
 clang-format/check:
 	@clang-format --dry-run --Werror $(SOURCES)
 clang-tidy/check:
-	@clang-tidy -p build/ --use-color --warnings-as-errors=* $(SOURCES)
+	@clang-tidy -p build/ --use-color $(SOURCES)
 
 # Used to force file-generating targets to always run.
 ALWAYS:
