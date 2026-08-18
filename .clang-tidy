@@ -1,3 +1,6 @@
+ExtraArgs:
+  - -std=c23
+
 Checks:
   - -*
   - portability-*
