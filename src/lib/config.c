@@ -4,9 +4,7 @@
 
 #include "config.h"
 
-#include <errno.h>
-#include <inttypes.h>
-#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,12 +14,14 @@ Config* config_new() {
   return malloc(sizeof(Config));
 }
 
-static Result get_uint32_t_env(const char* name, uintmax_t* value) {
+static Result get_int_env(const char* name, int* value) {
   const char* value_str = getenv(name);
+  if (value_str == nullptr) {
+    return RESULT_CONFIG_MISSING_VALUE;
+  }
 
-  char* endptr = nullptr;
-  *value = strtoumax(value_str, &endptr, 10);
-  if (errno == ERANGE || *value > UINT32_MAX || *endptr != '\0') {
+  int read = sscanf(value_str, "%d", value);
+  if (read != 1) {
     return RESULT_CONFIG_INVALID_VALUE;
   }
 
@@ -30,10 +30,12 @@ static Result get_uint32_t_env(const char* name, uintmax_t* value) {
 
 static Result get_double_env(const char* name, double* value) {
   const char* value_str = getenv(name);
+  if (value_str == nullptr) {
+    return RESULT_CONFIG_MISSING_VALUE;
+  }
 
-  char* endptr = nullptr;
-  *value = strtod(value_str, &endptr);
-  if (errno == ERANGE || *endptr != '\0') {
+  int read = sscanf(value_str, "%lf", value);
+  if (read != 1) {
     return RESULT_CONFIG_INVALID_VALUE;
   }
 
@@ -42,10 +44,11 @@ static Result get_double_env(const char* name, double* value) {
 
 static Result get_string_env(const char* name, char** value) {
   const char* value_str = getenv(name);
-  if (value == nullptr) {
+  if (value_str == nullptr) {
     return RESULT_CONFIG_MISSING_VALUE;
   }
 
+  // Duplicate the string, so that we can safely call free on it.
   *value = strdup(value_str);
 
   return RESULT_OK;
@@ -54,33 +57,33 @@ static Result get_string_env(const char* name, char** value) {
 Result config_load(Config* config) {
   Result result;
 
-  uintmax_t num_cooks;
-  result = get_uint32_t_env("NUM_COOKS", &num_cooks);
+  int num_cooks;
+  result = get_int_env("NUM_COOKS", &num_cooks);
   if (result != RESULT_OK) {
     return result;
   }
-  config->num_cooks = (uint32_t)num_cooks;
+  config->num_cooks = num_cooks;
 
-  uintmax_t num_waiters;
-  result = get_uint32_t_env("NUM_WAITERS", &num_waiters);
+  int num_waiters;
+  result = get_int_env("NUM_WAITERS", &num_waiters);
   if (result != RESULT_OK) {
     return result;
   }
-  config->num_waiters = (uint32_t)num_waiters;
+  config->num_waiters = num_waiters;
 
-  uintmax_t max_customers;
-  result = get_uint32_t_env("MAX_CUSTOMERS", &max_customers);
+  int max_customers;
+  result = get_int_env("MAX_CUSTOMERS", &max_customers);
   if (result != RESULT_OK) {
     return result;
   }
-  config->max_customers = (uint32_t)max_customers;
+  config->max_customers = max_customers;
 
-  uintmax_t total_customers;
-  result = get_uint32_t_env("TOTAL_CUSTOMERS", &total_customers);
+  int total_customers;
+  result = get_int_env("TOTAL_CUSTOMERS", &total_customers);
   if (result != RESULT_OK) {
     return result;
   }
-  config->total_customers = (uint32_t)total_customers;
+  config->total_customers = total_customers;
 
   char* menu_file;
   result = get_string_env("MENU_FILE", &menu_file);
@@ -103,17 +106,21 @@ Result config_load(Config* config) {
   }
   config->game_speed = game_speed;
 
-  uintmax_t random_seed;
-  result = get_uint32_t_env("RANDOM_SEED", &random_seed);
+  int random_seed;
+  result = get_int_env("RANDOM_SEED", &random_seed);
   if (result != RESULT_OK) {
     return result;
   }
-  config->random_seed = (uint32_t)random_seed;
+  config->random_seed = random_seed;
 
   return RESULT_OK;
 }
 
 void config_drop(Config* config) {
+  if (config == nullptr) {
+    return;
+  }
+
   free(config->menu_file);
   free(config->resources_file);
   free(config);
