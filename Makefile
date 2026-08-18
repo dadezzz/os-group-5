@@ -15,7 +15,7 @@ endif
 # Generate .d files to recompile when header files change.
 CPPFLAGS += -MMD -MP
 # Set C standard to 17 and allow some stricter diagnostics.
-CFLAGS   += -std=c17 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
+CFLAGS   += -std=c23 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
 # For now we don't need special linker flags.
 LDFLAGS  +=
 
