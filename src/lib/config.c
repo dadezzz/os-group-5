@@ -1,7 +1,3 @@
-// Some implementations of libc don't support strdup in c23 unless this macro is
-// defined as in https://en.cppreference.com/c/experimental/dynamic/strdup.
-#define _POSIX_C_SOURCE 200809L
-
 #include "config.h"
 
 #include <stdio.h>
@@ -9,10 +5,6 @@
 #include <string.h>
 
 #include "result.h"
-
-Config* config_new() {
-  return malloc(sizeof(Config));
-}
 
 static Result get_int_env(const char* name, int* value) {
   const char* value_str = getenv(name);
@@ -123,5 +115,4 @@ void config_drop(Config* config) {
 
   free(config->menu_file);
   free(config->resources_file);
-  free(config);
 }

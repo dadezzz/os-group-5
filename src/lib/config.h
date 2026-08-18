@@ -14,8 +14,6 @@ typedef struct {
   int random_seed;
 } Config;
 
-Config* config_new();
-
 Result config_load(Config* config);
 
 void config_drop(Config* config);
