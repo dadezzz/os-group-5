@@ -2,7 +2,7 @@ services:
   workspace:
     # build: .
     entrypoint: sleep infinity
-    image: git.zarantonello.dev/university/os-group-5:ci@sha256:0fb19ff4e66b5b64b42393cec1fbc0979b2aaefff7994ad4fa0d89fd578c4f0d
+    image: git.zarantonello.dev/university/os-group-5:ci@sha256:f76ca16dae2e6029c8442e491bbc2b791c9fcc665b7c03d48a575c4ab98de247
     volumes:
       - ..:/workspace:z,cached
     working_dir: /workspace
