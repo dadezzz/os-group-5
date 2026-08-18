@@ -5,6 +5,7 @@ Checks:
   - concurrency-*
   - bugprone-*
   - modernize-*
+  - -bugprone-easily-swappable-parameters
   - -readability-identifier-length
   - -readability-magic-numbers
 

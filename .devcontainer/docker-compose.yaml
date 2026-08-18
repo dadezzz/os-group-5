@@ -1,0 +1,8 @@
+services:
+  workspace:
+    # build: .
+    entrypoint: sleep infinity
+    image: git.zarantonello.dev/university/os-group-5:ci
+    volumes:
+      - ..:/workspace:z,cached
+    working_dir: /workspace
