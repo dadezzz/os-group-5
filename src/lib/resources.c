@@ -5,14 +5,10 @@
 #include <stdlib.h>
 
 #include "result.h"
+#include "vec.h"
 
-Resources* resources_new() {
-  return malloc(sizeof(Resources));
-}
-
-Result resources_load(const char* file_path, Resources* resources) {
-  resources->items = nullptr;
-  resources->length = 0;
+Result resources_load(const char* file_path, Vec* resources) {
+  vec_init(resources, sizeof(Resource));
 
   FILE* file = fopen(file_path, "r");
   if (file == nullptr) {
@@ -22,17 +18,12 @@ Result resources_load(const char* file_path, Resources* resources) {
   // Skip reading the first line (CSV header).
   fscanf(file, "%*[^\n]\n");
 
-  // Capacity is the size that gets allocated. It doubles expoentially to avoid
-  // expensive re-allocations.
-  size_t new_items_capacity = 1;
-
   // Parse each subsequent line.
   while (true) {
-    int quantity = 0;
-    int clean_time = 0;
-    char* name = nullptr;
+    Resource new_resource = {};
 
-    int read = fscanf(file, "%m[^,],%d,%d\n", &name, &quantity, &clean_time);
+    int read = fscanf(file, "%m[^,],%d,%d\n", &new_resource.name,
+                      &new_resource.quantity, &new_resource.clean_time);
 
     // Break at end of file.
     if (read == EOF) {
@@ -41,35 +32,17 @@ Result resources_load(const char* file_path, Resources* resources) {
 
     // Return error if line didn't have all 3 sections.
     if (read != 3) {
-      free(name);
+      free(new_resource.name);
       fclose(file);
       return RESULT_RESOURCES_FILE_INVALID;
     }
 
-    // Double the capacity each time. To avoid allocating on every cycle.
-    if (resources->length + 1 > new_items_capacity) {
-      new_items_capacity *= 2;
-    }
-
-    Resource* new_items =
-        realloc(resources->items, sizeof(Resource) * new_items_capacity);
-
     // Check that realloc was successfull.
-    if (new_items == nullptr) {
-      free(name);
+    if (vec_push(resources, &new_resource) != RESULT_OK) {
+      free(new_resource.name);
       fclose(file);
       return RESULT_OUT_OF_MEMORY;
     }
-
-    resources->items = new_items;
-
-    // Parse CSV line and load values in the Resource.
-    Resource* resource = &resources->items[resources->length];
-    resource->name = name;
-    resource->clean_time = clean_time;
-    resource->quantity = quantity;
-
-    resources->length += 1;
   }
 
   fclose(file);
@@ -81,16 +54,15 @@ Result resources_load(const char* file_path, Resources* resources) {
   return RESULT_OK;
 }
 
-void resources_drop(Resources* resources) {
-  // Avoid null pointer dereferences.
-  if (!resources) {
+void resources_drop(Vec* resources) {
+  if (resources == nullptr) {
     return;
   }
 
   for (size_t i = 0; i < resources->length; ++i) {
-    free(resources->items[i].name);
+    Resource* resource = vec_at(resources, i);
+    free(resource->name);
   }
 
-  free(resources->items);
-  free(resources);
+  vec_drop(resources);
 }

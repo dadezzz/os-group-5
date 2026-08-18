@@ -1,9 +1,8 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
-#include <stddef.h>
-
 #include "result.h"
+#include "vec.h"
 
 typedef struct {
   char* name;
@@ -11,15 +10,8 @@ typedef struct {
   int clean_time;
 } Resource;
 
-typedef struct {
-  size_t length;
-  Resource* items;
-} Resources;
+Result resources_load(const char* file_path, Vec* resources);
 
-Resources* resources_new();
-
-Result resources_load(const char* file_path, Resources* resources);
-
-void resources_drop(Resources* resources);
+void resources_drop(Vec* resources);
 
 #endif
