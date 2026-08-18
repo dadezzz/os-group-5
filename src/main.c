@@ -1,4 +1,5 @@
 #include <stdint.h>
+
 #include "lib/config.h"
 #include "lib/resources.h"
 #include "lib/result.h"
