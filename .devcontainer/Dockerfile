@@ -1,3 +1,8 @@
-FROM docker.io/library/alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+FROM docker.io/library/ubuntu:24.04
 
-RUN apk add --no-cache git gcc make clang-extra-tools valgrind
+ENV DEBIAN_FRONTEND="noninteractive"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git make clang clang-tools libclang-rt-dev llvm clang-format clang-tidy && \
+    apt-get clean && \
+    rm -r /var/lib/apt/lists/

@@ -9,7 +9,7 @@ jobs:
       - name: Clone the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build
-        run: CC=clang make build -j $(nproc)
+        run: CC=clang make build-debug -j $(nproc)
       - name: Clang tidy
         run: make clang-tidy/check
       - name: Clang format
