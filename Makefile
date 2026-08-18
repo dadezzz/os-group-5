@@ -3,27 +3,32 @@ OBJECTS  = $(patsubst src/%.c,build/objects/%.o,$(SOURCES))
 DEPS     = $(patsubst %.o,%.d,$(OBJECTS))
 COMMANDS = $(patsubst %.o,%.json,$(OBJECTS))
 
-# Generate compile commands (for IDE autocomplete) only if Clang is used. GCC
-# doesn't support it.
-ifeq ($(CC),clang)
-all: build build/compile_commands.json
-CPPFLAGS += -MJ $(@:%.o=%.json)
-else
-all: build
-endif
+all: build-debug
 
 # Generate .d files to recompile when header files change.
 CPPFLAGS += -MMD -MP
-# Set C standard to 23 and allow some stricter diagnostics.
-CFLAGS   += -std=c23 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
+# Set C standard to 23 and enable some stricter diagnostics.
+CFLAGS   += -std=gnu23 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
 # For now we don't need special linker flags.
 LDFLAGS  +=
 
 # Include the header files generated with -MMD in $CPPFLAGS.
 -include $(DEPS)
 
-# Main executable.
-build: build/restaurant
+# Add debug symbols and sanitizations to detect leaks and undefined behaviour.
+build-debug: CFLAGS += -g -fsanitize=address -fsanitize=undefined
+build-debug: LDFLAGS += -fsanitize=address -fsanitize=undefined
+build-debug: build/restaurant
+# Generate compile commands (for IDE autocomplete) only if Clang is used. GCC
+# doesn't support it.
+ifeq ($(CC),clang)
+build-debug: CPPFLAGS += -MJ $(@:%.o=%.json)
+build-debug: build/compile_commands.json
+endif
+
+# Add optimization flags.
+build-release: CFLAGS += -O3 -s
+build-release: build/restaurant
 
 # Link the restaurant executable.
 build/restaurant: $(OBJECTS) build/link_flags.txt
@@ -40,7 +45,7 @@ build/objects/%.o build/objects/%.json: src/%.c build/compile_flags.txt
 # The first sed substitution adds [\n at the start of the file and the second
 # removes the trailing comma and adds \n] at the end.
 build/compile_commands.json: $(COMMANDS)
-	@echo "created $@"
+	@echo "GEN $@"
 	@sed -e '1s/^/[\n/' -e '$$s/,$$/\n]/' $(COMMANDS) > $@
 
 # Detect when LDFLAGS change and write them to a file, so that it can be used as
@@ -48,11 +53,11 @@ build/compile_commands.json: $(COMMANDS)
 #
 # echo "__empty__" is used to avoid rebuilding when the flags are empty.
 NEW_LINK_FLAGS = $(LDFLAGS)
-OLD_LINK_FLAGS = $(shell cat build/link_flags.txt || echo "__empty__")
+OLD_LINK_FLAGS = $(shell cat build/link_flags.txt 2>/dev/null || echo "__empty__")
 build/link_flags.txt: ALWAYS
 	@mkdir -p $(dir $@)
 	@if [ "$(NEW_LINK_FLAGS)" != "$(OLD_LINK_FLAGS)" ] ; then \
-		echo "link flags changed"; \
+		echo "GEN $@"; \
 		echo "$(NEW_LINK_FLAGS)" > $@; \
 	fi
 
@@ -61,17 +66,17 @@ build/link_flags.txt: ALWAYS
 #
 # echo "__empty__" is used to avoid rebuilding when the flags are empty.
 NEW_COMPILE_FLAGS = $(CPPFLAGS) $(CFLAGS)
-OLD_COMPILE_FLAGS = $(shell cat build/compile_flags.txt || echo "__empty__")
+OLD_COMPILE_FLAGS = $(shell cat build/compile_flags.txt 2>/dev/null || echo "__empty__")
 build/compile_flags.txt: ALWAYS
 	@mkdir -p $(dir $@)
 	@if [ "$(NEW_COMPILE_FLAGS)" != "$(OLD_COMPILE_FLAGS)" ] ; then \
-		echo "compile flags changed"; \
+		echo "GEN $@"; \
 		echo "$(NEW_COMPILE_FLAGS)" > $@; \
 	fi
 
 # Clean the build/ and submission/ dirs.
 clean:
-	@rm -rf build/ submission/
+	@rm -rf .cache/ build/ submission/
 
 # Run ./bootstrap.sh
 #
