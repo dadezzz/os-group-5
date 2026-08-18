@@ -1,0 +1,19 @@
+#ifndef DISHES_H
+#define DISHES_H
+
+#include "../result.h"
+#include "../vec.h"
+
+typedef struct {
+  char* name;
+  int price;
+  int cook_time;
+  // Vec of Requirement.
+  Vec requirements;
+} Dish;
+
+Result dishes_load(const char* file_path, Vec* dishes);
+
+void dishes_drop(Vec* dishes);
+
+#endif

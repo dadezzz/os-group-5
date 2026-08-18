@@ -14,7 +14,7 @@ void vec_init(Vec* vec, size_t item_size) {
   vec->length = 0;
 }
 
-Result vec_push(Vec* vec, void* item) {
+Result vec_push(Vec* vec, const void* item) {
   // Capacity is always a power of 2, to not waste too much memory on small
   // vectors and to not require too many allocations on big vectors.
   size_t new_capacity = vec->capacity;
