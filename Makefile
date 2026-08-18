@@ -14,7 +14,7 @@ endif
 
 # Generate .d files to recompile when header files change.
 CPPFLAGS += -MMD -MP
-# Set C standard to 17 and allow some stricter diagnostics.
+# Set C standard to 23 and allow some stricter diagnostics.
 CFLAGS   += -std=c23 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
 # For now we don't need special linker flags.
 LDFLAGS  +=
@@ -80,10 +80,10 @@ run:
 	./bootstrap.sh
 
 # Copy files in a submission subdir with the layout that professors expect.
-submission: Makefile src/ bootstrap.sh status.sh
+submission: Makefile src/
 	@rm -rf submission/
 	@mkdir -p submission/code/
-	@cp -vr Makefile bootstrap.sh status.sh src/ submission/code/
+	@cp -vr Makefile src/bootstrap.sh src/status.sh src/ submission/code/
 	@# cp report.pdf submission/
 
 format: clang-format/fix
