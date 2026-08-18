@@ -1,12 +1,13 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "menu.h"
-#include "result.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
+
+#include "result.h"
 
 #define MAX_LINE 50
 #define MAX_NAME 25
@@ -16,13 +17,13 @@ Menu* menu_new() {
   return malloc(sizeof(Menu));
 }
 
-Result menu_load(const char* file_path, Menu* menu){
+Result menu_load(const char* file_path, Menu* menu) {
   menu->dishes = nullptr;
   menu->n_dishes = 0;
 
-  FILE *file = fopen(file_path, "r");
+  FILE* file = fopen(file_path, "r");
 
-  if(file == nullptr) {
+  if (file == nullptr) {
     return RESULT_MENU_FILE_NOT_OPENED;
   }
 
@@ -38,7 +39,7 @@ Result menu_load(const char* file_path, Menu* menu){
     int price;
     int time;
 
-    if(sscanf(buf, "%s[^,],%d,%d,%s", name, &price, &time, reqs) == 4){
+    if (sscanf(buf, "%s[^,],%d,%d,%s", name, &price, &time, reqs) == 4) {
       menu->dishes = realloc(menu->dishes, (menu->n_dishes + 1) * sizeof(Dish));
 
       Dish* d = &menu->dishes[menu->n_dishes];
@@ -46,8 +47,8 @@ Result menu_load(const char* file_path, Menu* menu){
       d->price = price;
       d->cook_time = time;
 
-      Requirements *temp = parse_reqs(reqs);
-      if(temp == nullptr){
+      Requirements* temp = parse_reqs(reqs);
+      if (temp == nullptr) {
         fclose(file);
         return RESULT_MENU_INVALID_RESOURCES;
       }
@@ -67,8 +68,8 @@ Result menu_load(const char* file_path, Menu* menu){
   return RESULT_OK;
 }
 
-void menu_drop(Menu* menu){
-  for(int i=0; i<menu->n_dishes; i++){
+void menu_drop(Menu* menu) {
+  for (size_t i = 0; i < menu->n_dishes; i++) {
     free(menu->dishes[i].name);
     free(menu->dishes[i].reqs);
   }
@@ -76,12 +77,12 @@ void menu_drop(Menu* menu){
   free(menu);
 }
 
-Requirements* parse_reqs(char *reqs_str){
-  if(!reqs_str || strlen(reqs_str)==0){
+Requirements* parse_reqs(char* reqs_str) {
+  if (!reqs_str || strlen(reqs_str) == 0) {
     return nullptr;
   }
 
-  int count = 0;
+  size_t count = 0;
   Requirements* reqs = NULL;
 
   char* token = strtok(reqs_str, ";");
@@ -95,7 +96,7 @@ Requirements* parse_reqs(char *reqs_str){
 
     count++;
     Requirements* temp = realloc(reqs, count * sizeof(Requirements));
-    if(!temp){
+    if (!temp) {
       free(reqs);
       return nullptr;
     }
