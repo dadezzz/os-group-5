@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,11 +11,7 @@ static Result get_int_env(const char* name, int* value) {
     return RESULT_CONFIG_MISSING_VALUE;
   }
 
-  int read = sscanf(value_str, "%d", value);
-  if (read != 1) {
-    return RESULT_CONFIG_INVALID_VALUE;
-  }
-
+  *value = atoi(value_str);
   return RESULT_OK;
 }
 
@@ -26,11 +21,7 @@ static Result get_double_env(const char* name, double* value) {
     return RESULT_CONFIG_MISSING_VALUE;
   }
 
-  int read = sscanf(value_str, "%lf", value);
-  if (read != 1) {
-    return RESULT_CONFIG_INVALID_VALUE;
-  }
-
+  *value = atof(value_str);
   return RESULT_OK;
 }
 
@@ -42,7 +33,6 @@ static Result get_string_env(const char* name, char** value) {
 
   // Duplicate the string, so that we can safely call free on it.
   *value = strdup(value_str);
-
   return RESULT_OK;
 }
 

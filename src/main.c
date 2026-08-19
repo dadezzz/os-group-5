@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "lib/config.h"
+#include "lib/dishes/dishes.h"
 #include "lib/resources.h"
 #include "lib/result.h"
 #include "lib/rng.h"
@@ -23,10 +24,19 @@ int main() {
     return result;
   }
 
+  Vec dishes;
+  result = dishes_load(config.menu_file, &dishes);
+  if (result != RESULT_OK) {
+    dishes_drop(&dishes);
+    resources_drop(&resources);
+    config_drop(&config);
+  }
+
   RNGState* rng_state = rng_new_main_state((uint64_t)config.random_seed);
 
   // Cleanup.
   rng_drop_state(rng_state);
+  dishes_drop(&dishes);
   resources_drop(&resources);
   config_drop(&config);
 
