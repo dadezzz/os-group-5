@@ -21,8 +21,8 @@ static Result parse_requirement(const char* requirement_str,
   // Try to read the quantity value if a colon was found.
   if (requirement_str[name_bytes] == ':') {
     char* quantity_str = nullptr;
-    size_t quantity_bytes =
-        read_str_until_char(&requirement_str[name_bytes], &quantity_str, '\0');
+    size_t quantity_bytes = read_str_until_char(
+        &requirement_str[name_bytes] + 1, &quantity_str, '\0');
 
     // Return error if the string ended with a colon or was empty.
     if (quantity_bytes == 0) {
