@@ -1,5 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "assignees": ["dadezzz"],
-  "extends": ["config:best-practices", ":semanticCommits"]
+  "extends": ["config:best-practices", ":semanticCommits"],
+  "packageRules": [
+    {
+      "automerge": true,
+      "groupName": "CI dependencies",
+      "groupSlug": "ci",
+      "matchFileNames": [".github/**", ".devcontainer/**"],
+      "matchUpdateTypes": ["!major"]
+    }
+  ]
 }

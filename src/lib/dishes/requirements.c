@@ -13,7 +13,7 @@ static Result parse_requirement(const char* requirement_str,
   size_t name_bytes =
       read_str_until_char(requirement_str, &requirement->name, ':');
 
-  // Return error if the first character was ':'.
+  // Return error if the first character was ':' or there was no name.
   if (name_bytes == 0) {
     return RESULT_DISHES_FILE_INVALID;
   }
