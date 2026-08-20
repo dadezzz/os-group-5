@@ -2,8 +2,8 @@
 #include <stdint.h>
 
 #include "lib/config.h"
-#include "lib/dishes/dishes.h"
-#include "lib/resources.h"
+#include "lib/data/dishes/dishes.h"
+#include "lib/data/resources.h"
 #include "lib/result.h"
 #include "lib/rng.h"
 #include "lib/state/restaurant.h"

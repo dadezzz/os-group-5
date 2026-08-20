@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#include "../dishes/dishes.h"
+#include "../data/dishes/dishes.h"
 
 void dish_ticket_init(DishTicket* dish_ticket,
                       Dish* dish,

@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "result.h"
-#include "str.h"
-#include "vec.h"
+#include "../result.h"
+#include "../str.h"
+#include "../vec.h"
 
 static Result parse_resource(const char* resource_str, Resource* resource) {
   size_t name_bytes = read_str_until_char(resource_str, &resource->name, ',');

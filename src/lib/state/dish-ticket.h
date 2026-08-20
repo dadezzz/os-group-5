@@ -2,7 +2,7 @@
 #define DISH_TICKET_H
 
 #include <pthread.h>
-#include "../dishes/dishes.h"
+#include "../data/dishes/dishes.h"
 
 typedef struct {
   Dish* dish;
