@@ -40,8 +40,6 @@ static Result parse_requirement(const char* requirement_str,
 }
 
 Result requirements_load(const char* requirements_str, Vec* requirements) {
-  vec_init(requirements, sizeof(Requirement));
-
   // This is like a cursor to advance parsing with sscanf.
   size_t total_bytes_read = 0;
 

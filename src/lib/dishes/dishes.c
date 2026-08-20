@@ -52,6 +52,7 @@ static Result parse_dish(const char* str, Dish* dish) {
     return RESULT_DISHES_FILE_INVALID;
   }
 
+  vec_init(&dish->requirements, sizeof(Requirement));
   Result result = requirements_load(requirements_str, &dish->requirements);
   free(requirements_str);
   if (result != RESULT_OK) {
@@ -100,8 +101,6 @@ static Result parse_file(FILE* file, Vec* dishes) {
 }
 
 Result dishes_load(const char* file_path, Vec* dishes) {
-  vec_init(dishes, sizeof(Dish));
-
   FILE* file = fopen(file_path, "r");
 
   if (file == nullptr) {

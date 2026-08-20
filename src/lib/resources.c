@@ -84,8 +84,6 @@ static Result parse_file(FILE* file, Vec* resources) {
 }
 
 Result resources_load(const char* file_path, Vec* resources) {
-  vec_init(resources, sizeof(Resource));
-
   FILE* file = fopen(file_path, "r");
   if (file == nullptr) {
     return RESULT_RESOURCES_FILE_NOT_OPENED;
