@@ -49,7 +49,7 @@ int main() {
   for (size_t i = 0; result == RESULT_OK && i < cooks.length; ++i) {
     // Initialize all cooks in place.
     Cook* cook = vec_at(&cooks, i);
-    result = cook_init(cook);
+    result = cook_init(cook, rng_new_thread_state(rng_state));
   }
 
   Vec waiters;
@@ -60,7 +60,7 @@ int main() {
   }
   for (size_t i = 0; result == RESULT_OK && i < waiters.length; ++i) {
     Waiter* waiter = vec_at(&waiters, i);
-    result = waiter_init(waiter);
+    result = waiter_init(waiter, rng_new_thread_state(rng_state));
   }
 
   // Cleanup.
