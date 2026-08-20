@@ -1,6 +1,7 @@
 #include "customer.h"
 
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,6 +10,7 @@
 static Result customer_run(Customer* customer) {
   // TODO
 
+  sem_post(customer->seats);
   return RESULT_OK;
 }
 
@@ -24,8 +26,10 @@ static void* customer_thread(void* arg) {
   return result;
 }
 
-Result customer_init(Customer* customer, RNGState* rng) {
+Result customer_init(Customer* customer, RNGState* rng, sem_t* seats) {
   customer->rng = rng;
+  customer->seats = seats;
+  sem_wait(customer->seats);
 
   int result =
       pthread_create(&customer->tid, nullptr, customer_thread, customer);
@@ -54,5 +58,7 @@ Result customer_drop(Customer* customer) {
     return RESULT_OUT_OF_MEMORY;
   }
 
-  return *run_result;
+  Result result = *run_result;
+  free(run_result);
+  return result;
 }

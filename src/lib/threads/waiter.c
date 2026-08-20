@@ -71,5 +71,7 @@ Result waiter_drop(Waiter* waiter) {
     return RESULT_OUT_OF_MEMORY;
   }
 
-  return *run_result;
+  Result result = *run_result;
+  free(run_result);
+  return result;
 }
