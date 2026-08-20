@@ -11,7 +11,7 @@
 static Result parse_resource(const char* resource_str, Resource* resource) {
   size_t name_bytes = read_str_until_char(resource_str, &resource->name, ',');
 
-  if (name_bytes == 0) {
+  if (name_bytes == 0 || resource_str[name_bytes] == '\0') {
     return RESULT_RESOURCES_FILE_INVALID;
   }
 
@@ -20,7 +20,7 @@ static Result parse_resource(const char* resource_str, Resource* resource) {
   char* quantity_str = nullptr;
   size_t quantity_bytes = read_str_until_char(resource_str, &quantity_str, ',');
 
-  if (quantity_bytes == 0) {
+  if (quantity_bytes == 0 || resource_str[quantity_bytes] == '\0') {
     free(quantity_str);
     return RESULT_RESOURCES_FILE_INVALID;
   }
@@ -62,7 +62,7 @@ static Result parse_file(FILE* file, Vec* resources) {
     // At least 5 bytes required to make a valid 3 field CSV line.
     if (line_bytes < 5) {
       free(line_str);
-      continue;
+      return RESULT_DISHES_FILE_INVALID;
     }
 
     Resource new_resource = {};

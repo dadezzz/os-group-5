@@ -12,7 +12,7 @@
 static Result parse_dish(const char* str, Dish* dish) {
   size_t name_bytes = read_str_until_char(str, &dish->name, ',');
 
-  if (name_bytes == 0) {
+  if (name_bytes == 0 || str[name_bytes] =='\0') {
     return RESULT_DISHES_FILE_INVALID;
   }
 
@@ -21,7 +21,7 @@ static Result parse_dish(const char* str, Dish* dish) {
   char* price_str = nullptr;
   size_t price_bytes = read_str_until_char(str, &price_str, ',');
 
-  if (price_bytes == 0) {
+  if (price_bytes == 0 || str[price_bytes] =='\0') {
     free(price_str);
     return RESULT_DISHES_FILE_INVALID;
   }
@@ -34,7 +34,7 @@ static Result parse_dish(const char* str, Dish* dish) {
   char* cook_time_str = nullptr;
   size_t cook_time_bytes = read_str_until_char(str, &cook_time_str, ',');
 
-  if (cook_time_bytes == 0) {
+  if (cook_time_bytes == 0 || str[cook_time_bytes] =='\0') {
     free(cook_time_str);
     return RESULT_DISHES_FILE_INVALID;
   }
@@ -78,7 +78,7 @@ static Result parse_file(FILE* file, Vec* dishes) {
     // At least 7 bytes require to make a valid 4 field CSV line.
     if (line_bytes < 7) {
       free(line_str);
-      continue;
+      return RESULT_DISHES_FILE_INVALID;
     }
 
     Dish new_dish = {};
