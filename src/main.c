@@ -57,7 +57,6 @@ int main() {
     }
   }
 
-
   // Cleanup.
   for (size_t i = 0; i < waiters.length; i++) {
     Result local_result = waiter_drop(vec_at(&waiters, i));
