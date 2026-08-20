@@ -28,8 +28,8 @@ int main() {
   Vec dishes;
   result = dishes_load(config.menu_file, &dishes);
   if (result != RESULT_OK) {
-  vec_drop(&dishes, dish_drop);
-  vec_drop(&resources, resource_drop);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
     config_drop(&config);
   }
 
