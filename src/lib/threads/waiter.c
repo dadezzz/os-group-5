@@ -1,4 +1,4 @@
-#include "cook.h"
+#include "waiter.h"
 
 #include <pthread.h>
 #include <string.h>
@@ -7,44 +7,41 @@
 #include "../result.h"
 #include "../state/dish-ticket.h"
 
-Result cook_assign(DishTicket* dish_ticket, Cook* cook) {
+Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket) {
   // TODO: use mutex to lock the queue while writing.
 
-  Result result = queue_push(&cook->task_q, dish_ticket);
+  Result result = queue_push(&waiter->ready_q, dish_ticket);
   if (result != RESULT_OK) {
     return result;
   }
-
-  cook->queued_time += dish_ticket->dish->cook_time;
 
   // TODO: probably need to trigger some semaphore to make the cook work.
 
   return RESULT_OK;
 }
 
-static Result cook_run(Cook* cook) {
+static Result waiter_run(Waiter* waiter) {
   // TODO
 
   return RESULT_OK;
 }
 
-static void* cook_thread(void* arg) {
+static void* waiter_thread(void* arg) {
   Result* result = malloc(sizeof(Result));
   if (result == nullptr) {
     return nullptr;
   }
 
-  Result run_result = cook_run(arg);
+  Result run_result = waiter_run(arg);
   memcpy(result, &run_result, sizeof(Result));
 
   return result;
 }
 
-Result cook_init(Cook* cook) {
-  queue_init(&cook->task_q, sizeof(DishTicket));
-  cook->queued_time = 0;
+Result waiter_init(Waiter* waiter) {
+  queue_init(&waiter->ready_q, sizeof(DishTicket));
 
-  int result = pthread_create(&cook->tid, nullptr, cook_thread, cook);
+  int result = pthread_create(&waiter->tid, nullptr, waiter_thread, waiter);
   if (result != 0) {
     return RESULT_THREAD_CREATION_FAILED;
   }
@@ -52,15 +49,15 @@ Result cook_init(Cook* cook) {
   return RESULT_OK;
 }
 
-Result cook_drop(Cook* cook) {
-  if (cook == nullptr) {
+Result waiter_drop(Waiter* waiter) {
+  if (waiter == nullptr) {
     return RESULT_OK;
   }
 
   Result* run_result;
-  int join_result = pthread_join(cook->tid, (void**)&run_result);
+  int join_result = pthread_join(waiter->tid, (void**)&run_result);
 
-  queue_drop(&cook->task_q, dish_ticket_drop);
+  queue_drop(&waiter->ready_q, dish_ticket_drop);
 
   if (join_result != 0) {
     return RESULT_THREAD_JOIN_FAILED;
