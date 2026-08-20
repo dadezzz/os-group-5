@@ -1,8 +1,8 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
-#include "result.h"
-#include "vec.h"
+#include "../result.h"
+#include "../vec.h"
 
 typedef struct {
   char* name;

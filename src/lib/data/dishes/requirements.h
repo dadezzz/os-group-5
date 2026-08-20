@@ -1,8 +1,8 @@
 #ifndef REQUIREMENTS_H
 #define REQUIREMENTS_H
 
-#include "../result.h"
-#include "../vec.h"
+#include "../../result.h"
+#include "../../vec.h"
 
 typedef struct {
   char* name;

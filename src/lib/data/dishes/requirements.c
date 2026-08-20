@@ -3,9 +3,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "../result.h"
-#include "../str.h"
-#include "../vec.h"
+#include "../../result.h"
+#include "../../str.h"
+#include "../../vec.h"
 
 static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement) {
