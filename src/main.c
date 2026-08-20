@@ -42,7 +42,7 @@ int main() {
     vec_init(&cooks, sizeof(Cook));
     for (int i = 0; i < config.num_cooks; i++) {
       Cook cook;
-      cook_init(&cook);
+      cook_init(&cook, rng_new_thread_state(rng_state));
       vec_push(&cooks, &cook);
     }
   }
@@ -52,7 +52,7 @@ int main() {
     vec_init(&waiters, sizeof(Waiter));
     for (int i = 0; i < config.num_waiters; i++) {
       Waiter waiter;
-      waiter_init(&waiter);
+      waiter_init(&waiter, rng_new_thread_state(rng_state));
       vec_push(&waiters, &waiter);
     }
   }

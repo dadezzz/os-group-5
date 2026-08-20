@@ -39,7 +39,9 @@ static void* waiter_thread(void* arg) {
   return result;
 }
 
-Result waiter_init(Waiter* waiter) {
+Result waiter_init(Waiter* waiter, RNGState* rng) {
+  waiter->rng = rng;
+
   queue_init(&waiter->ready_q, sizeof(DishTicket));
 
   int result = pthread_create(&waiter->tid, nullptr, waiter_thread, waiter);
@@ -59,6 +61,7 @@ Result waiter_drop(Waiter* waiter) {
   int join_result = pthread_join(waiter->tid, (void**)&run_result);
 
   queue_drop(&waiter->ready_q, dish_ticket_drop);
+  rng_drop_state(waiter->rng);
 
   if (join_result != 0) {
     return RESULT_THREAD_JOIN_FAILED;
