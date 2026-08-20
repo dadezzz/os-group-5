@@ -9,6 +9,6 @@ typedef struct {
 
 void dish_ticket_init(DishTicket* dish_ticket, Dish* dish);
 
-void dish_ticket_drop(DishTicket* dish_ticket);
+void dish_ticket_drop(void* arg);
 
 #endif

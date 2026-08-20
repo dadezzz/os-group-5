@@ -1,0 +1,21 @@
+#ifndef COOK_H
+#define COOK_H
+
+#include <pthread.h>
+
+#include "../fifo-queue.h"
+#include "../state/dish-ticket.h"
+
+typedef struct {
+  pthread_t tid;
+  FIFOQueue task_q;
+  int queued_time;
+} Cook;
+
+Result cook_assign(DishTicket* dish_ticket, Cook* cook);
+
+Result cook_init(Cook* cook);
+
+Result cook_drop(Cook* cook);
+
+#endif
