@@ -1,8 +1,10 @@
 #ifndef RESTAURANT_H
 #define RESTAURANT_H
 
+#include <semaphore.h>
+
 typedef struct {
-  int seats;
+  sem_t seats;
 } Restaurant;
 
 void restaurant_init(Restaurant* restaurant, int seats);

@@ -63,7 +63,29 @@ int main() {
     result = waiter_init(waiter, rng_new_thread_state(rng_state));
   }
 
+  Vec customers;
+  if (result == RESULT_OK) {
+    vec_init(&customers, sizeof(Customer));
+    customers.length = config.total_customers;
+    result = vec_reserve(&customers, customers.length);
+  }
+  for (size_t i = 0; result == RESULT_OK && i < customers.length; ++i) {
+    Customer* customer = vec_at(&customers, i);
+    result = customer_init(customer, rng_new_thread_state(rng_state),
+                           &restaurant.seats);
+  }
+
   // Cleanup.
+  for (size_t i = 0; i < customers.length; ++i) {
+    Result local_result = customer_drop(vec_at(&customers, i));
+    // Don't override the previous value that made the program fail.
+    // Subsequent failures may be a consequence of the first.
+    if (result == RESULT_OK) {
+      result = local_result;
+    }
+  }
+  vec_drop(&customers, nullptr);
+
   for (size_t i = 0; i < waiters.length; ++i) {
     Result local_result = waiter_drop(vec_at(&waiters, i));
     if (result == RESULT_OK) {
