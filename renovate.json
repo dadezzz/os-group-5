@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "assignees": ["dadezzz"],
   "extends": ["config:best-practices", ":semanticCommits"],
-  "packageRules":[
+  "packageRules": [
     {
       "automerge": true,
       "groupName": "CI dependencies",
