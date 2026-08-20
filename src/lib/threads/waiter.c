@@ -1,6 +1,7 @@
 #include "waiter.h"
 
 #include <pthread.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../fifo-queue.h"
