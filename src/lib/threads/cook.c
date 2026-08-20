@@ -41,7 +41,9 @@ static void* cook_thread(void* arg) {
   return result;
 }
 
-Result cook_init(Cook* cook) {
+Result cook_init(Cook* cook, RNGState* rng) {
+  cook->rng = rng;
+
   queue_init(&cook->task_q, sizeof(DishTicket));
   cook->queued_time = 0;
 
@@ -62,6 +64,7 @@ Result cook_drop(Cook* cook) {
   int join_result = pthread_join(cook->tid, (void**)&run_result);
 
   queue_drop(&cook->task_q, dish_ticket_drop);
+  rng_drop_state(cook->rng);
 
   if (join_result != 0) {
     return RESULT_THREAD_JOIN_FAILED;

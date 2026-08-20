@@ -24,7 +24,9 @@ static void* customer_thread(void* arg) {
   return result;
 }
 
-Result customer_init(Customer* customer) {
+Result customer_init(Customer* customer, RNGState* rng) {
+  customer->rng = rng;
+
   int result =
       pthread_create(&customer->tid, nullptr, customer_thread, customer);
   if (result != 0) {
@@ -41,6 +43,8 @@ Result customer_drop(Customer* customer) {
 
   Result* run_result;
   int join_result = pthread_join(customer->tid, (void**)&run_result);
+
+  rng_drop_state(customer->rng);
 
   if (join_result != 0) {
     return RESULT_THREAD_JOIN_FAILED;

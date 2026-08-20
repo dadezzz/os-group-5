@@ -6,16 +6,18 @@
 #include "../fifo-queue.h"
 #include "../result.h"
 #include "../state/dish-ticket.h"
+#include "../rng.h"
 
 typedef struct {
   pthread_t tid;
   FIFOQueue task_q;
   int queued_time;
+  RNGState* rng;
 } Cook;
 
 Result cook_assign(DishTicket* dish_ticket, Cook* cook);
 
-Result cook_init(Cook* cook);
+Result cook_init(Cook* cook, RNGState* rng);
 
 Result cook_drop(Cook* cook);
 
