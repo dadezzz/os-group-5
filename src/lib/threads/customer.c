@@ -1,29 +1,18 @@
 #include "customer.h"
 
-#include <pthread.h>
 #include <semaphore.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "../result.h"
+#include "../rng.h"
+#include "wrapper.h"
 
-static Result customer_run(Customer* customer) {
+static Result customer_run(void* void_customer) {
+  Customer* customer = void_customer;
+
   // TODO
 
   sem_post(customer->seats);
   return RESULT_OK;
-}
-
-static void* customer_thread(void* arg) {
-  Result* result = malloc(sizeof(Result));
-  if (result == nullptr) {
-    return nullptr;
-  }
-
-  Result run_result = customer_run(arg);
-  memcpy(result, &run_result, sizeof(Result));
-
-  return result;
 }
 
 Result customer_init(Customer* customer, RNGState* rng, sem_t* seats) {
@@ -31,13 +20,7 @@ Result customer_init(Customer* customer, RNGState* rng, sem_t* seats) {
   customer->seats = seats;
   sem_wait(customer->seats);
 
-  int result =
-      pthread_create(&customer->tid, nullptr, customer_thread, customer);
-  if (result != 0) {
-    return RESULT_THREAD_CREATION_FAILED;
-  }
-
-  return RESULT_OK;
+  return thread_init(&customer->tid, customer_run, customer);
 }
 
 Result customer_drop(Customer* customer) {
@@ -45,20 +28,9 @@ Result customer_drop(Customer* customer) {
     return RESULT_OK;
   }
 
-  Result* run_result;
-  int join_result = pthread_join(customer->tid, (void**)&run_result);
+  Result result = thread_drop(customer->tid);
 
   rng_drop_state(customer->rng);
 
-  if (join_result != 0) {
-    return RESULT_THREAD_JOIN_FAILED;
-  }
-
-  if (run_result == nullptr) {
-    return RESULT_OUT_OF_MEMORY;
-  }
-
-  Result result = *run_result;
-  free(run_result);
   return result;
 }
