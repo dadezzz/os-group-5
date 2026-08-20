@@ -206,6 +206,8 @@ while read -r line || [[ -n "$line" ]]; do
     esac
 done < "$ENV_FILE"
 
+# TODO: check that _ENV vars aren't empty.
+
 # Use cli argument with preceence over the one in the env file.
 export NUM_COOKS="${NUM_COOKS_ARG:-$NUM_COOKS_ENV}"
 export NUM_WAITERS="${NUM_WAITERS_ARG:-$NUM_WAITERS_ENV}"
