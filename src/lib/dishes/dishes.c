@@ -85,15 +85,13 @@ static Result parse_file(FILE* file, Vec* dishes) {
     Result result = parse_dish(line_str, &new_dish);
     free(line_str);
     if (result != RESULT_OK) {
-      free(new_dish.name);
-      requirements_drop(&new_dish.requirements);
+      dish_drop(&new_dish);
       return result;
     }
 
     result = vec_push(dishes, &new_dish);
     if (result != RESULT_OK) {
-      free(new_dish.name);
-      requirements_drop(&new_dish.requirements);
+      dish_drop(&new_dish);
       return result;
     }
   }
@@ -123,16 +121,12 @@ Result dishes_load(const char* file_path, Vec* dishes) {
   return RESULT_OK;
 }
 
-void dishes_drop(Vec* dishes) {
-  if (dishes == nullptr) {
+void dish_drop(void* arg) {
+  if (arg == nullptr) {
     return;
   }
 
-  for (size_t i = 0; i < dishes->length; ++i) {
-    Dish* dish = vec_at(dishes, i);
-    free(dish->name);
-    requirements_drop(&dish->requirements);
-  }
-
-  vec_drop(dishes);
+  Dish* dish = arg;
+  free(dish->name);
+  vec_drop(&dish->requirements, requirement_drop);
 }

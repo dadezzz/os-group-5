@@ -5,6 +5,7 @@
 #include "lib/resources.h"
 #include "lib/result.h"
 #include "lib/rng.h"
+#include "lib/vec.h"
 
 int main() {
   Result result;
@@ -19,7 +20,7 @@ int main() {
   Vec resources;
   result = resources_load(config.resources_file, &resources);
   if (result != RESULT_OK) {
-    resources_drop(&resources);
+    vec_drop(&resources, resource_drop);
     config_drop(&config);
     return result;
   }
@@ -27,8 +28,8 @@ int main() {
   Vec dishes;
   result = dishes_load(config.menu_file, &dishes);
   if (result != RESULT_OK) {
-    dishes_drop(&dishes);
-    resources_drop(&resources);
+  vec_drop(&dishes, dish_drop);
+  vec_drop(&resources, resource_drop);
     config_drop(&config);
   }
 
@@ -36,8 +37,8 @@ int main() {
 
   // Cleanup.
   rng_drop_state(rng_state);
-  dishes_drop(&dishes);
-  resources_drop(&resources);
+  vec_drop(&dishes, dish_drop);
+  vec_drop(&resources, resource_drop);
   config_drop(&config);
 
   return 0;

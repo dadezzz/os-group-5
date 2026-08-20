@@ -11,6 +11,6 @@ typedef struct {
 
 Result requirements_load(const char* requirements_str, Vec* requirements);
 
-void requirements_drop(Vec* requirements);
+void requirement_drop(void* arg);
 
 #endif

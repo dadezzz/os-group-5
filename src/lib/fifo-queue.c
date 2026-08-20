@@ -58,8 +58,14 @@ void* queue_pop(FIFOQueue* queue) {
   return value;
 }
 
-void queue_drop(FIFOQueue* queue) {
+void queue_drop(FIFOQueue* queue, void (*drop_cb)(void*)) {
   while (!queue_is_empty(queue)) {
-    free(queue_pop(queue));
+    void* item = (queue_pop(queue));
+
+    if (drop_cb != nullptr) {
+      drop_cb(item);
+    }
+
+    free(item);
   }
 }

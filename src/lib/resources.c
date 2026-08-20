@@ -69,13 +69,13 @@ static Result parse_file(FILE* file, Vec* resources) {
     Result result = parse_resource(line_str, &new_resource);
     free(line_str);
     if (result != RESULT_OK) {
-      free(new_resource.name);
+      resource_drop(&new_resource);
       return result;
     }
 
     result = vec_push(resources, &new_resource);
     if (result != RESULT_OK) {
-      free(new_resource.name);
+      resource_drop(&new_resource);
       return result;
     }
   }
@@ -104,15 +104,11 @@ Result resources_load(const char* file_path, Vec* resources) {
   return RESULT_OK;
 }
 
-void resources_drop(Vec* resources) {
-  if (resources == nullptr) {
+void resource_drop(void* arg) {
+  if (arg == nullptr) {
     return;
   }
 
-  for (size_t i = 0; i < resources->length; ++i) {
-    Resource* resource = vec_at(resources, i);
-    free(resource->name);
-  }
-
-  vec_drop(resources);
+  Resource* resource = arg;
+  free(resource->name);
 }

@@ -18,6 +18,6 @@ Result vec_push(Vec* vec, const void* item);
 
 void* vec_at(Vec* vec, size_t i);
 
-void vec_drop(Vec* vec);
+void vec_drop(Vec* vec, void (*drop_cb)(void*));
 
 #endif
