@@ -14,6 +14,8 @@ typedef struct {
 
 void vec_init(Vec* vec, size_t item_size);
 
+Result vec_reserve(Vec* vec, size_t length) ;
+
 Result vec_push(Vec* vec, const void* item);
 
 void* vec_at(Vec* vec, size_t i);
