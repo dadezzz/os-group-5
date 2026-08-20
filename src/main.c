@@ -8,6 +8,7 @@
 #include "lib/rng.h"
 #include "lib/state/restaurant.h"
 #include "lib/threads/cook.h"
+#include "lib/threads/customer.h"
 #include "lib/threads/waiter.h"
 #include "lib/vec.h"
 
@@ -40,35 +41,40 @@ int main() {
   Vec cooks;
   if (result == RESULT_OK) {
     vec_init(&cooks, sizeof(Cook));
-    for (int i = 0; i < config.num_cooks; i++) {
-      Cook cook;
-      cook_init(&cook);
-      vec_push(&cooks, &cook);
-    }
+    cooks.length = config.num_cooks;
+    // Reserve enough space for all cooks to make sure that the array doesn't
+    // get moved in another memory location by a realloc.
+    result = vec_reserve(&cooks, cooks.length);
+  }
+  for (size_t i = 0; result == RESULT_OK && i < cooks.length; ++i) {
+    // Initialize all cooks in place.
+    Cook* cook = vec_at(&cooks, i);
+    result = cook_init(cook);
   }
 
   Vec waiters;
   if (result == RESULT_OK) {
     vec_init(&waiters, sizeof(Waiter));
-    for (int i = 0; i < config.num_waiters; i++) {
-      Waiter waiter;
-      waiter_init(&waiter);
-      vec_push(&waiters, &waiter);
-    }
+    waiters.length = config.num_waiters;
+    result = vec_reserve(&waiters, waiters.length);
+  }
+  for (size_t i = 0; result == RESULT_OK && i < waiters.length; ++i) {
+    Waiter* waiter = vec_at(&waiters, i);
+    result = waiter_init(waiter);
   }
 
   // Cleanup.
-  for (size_t i = 0; i < waiters.length; i++) {
+  for (size_t i = 0; i < waiters.length; ++i) {
     Result local_result = waiter_drop(vec_at(&waiters, i));
-    if (local_result != RESULT_OK) {
+    if (result == RESULT_OK) {
       result = local_result;
     }
   }
   vec_drop(&waiters, nullptr);
 
-  for (size_t i = 0; i < cooks.length; i++) {
+  for (size_t i = 0; i < cooks.length; ++i) {
     Result local_result = cook_drop(vec_at(&cooks, i));
-    if (local_result != RESULT_OK) {
+    if (result == RESULT_OK) {
       result = local_result;
     }
   }

@@ -14,33 +14,38 @@ void vec_init(Vec* vec, size_t item_size) {
   vec->length = 0;
 }
 
-// TODO: handle results from vec_push.
-Result vec_push(Vec* vec, const void* item) {
+Result vec_reserve(Vec* vec, size_t length) {
   // Capacity is always a power of 2, to not waste too much memory on small
   // vectors and to not require too many allocations on big vectors.
-  size_t new_capacity = vec->capacity;
-  if (vec->length + 1 > vec->capacity) {
-    new_capacity *= 2;
+  while (vec->capacity < length) {
+    vec->capacity *= 2;
   }
 
-  void* new_items = realloc(vec->items, vec->item_size * new_capacity);
+  void* new_items = realloc(vec->items, vec->capacity * vec->item_size);
 
   if (new_items == nullptr) {
     return RESULT_OUT_OF_MEMORY;
   }
 
   vec->items = new_items;
-  vec->capacity = new_capacity;
-
-  memcpy(vec->items + (vec->length * vec->item_size), item, vec->item_size);
-
-  vec->length += 1;
-
   return RESULT_OK;
 }
 
 void* vec_at(Vec* vec, size_t i) {
   return vec->items + i * vec->item_size;
+}
+
+// TODO: handle results from vec_push.
+Result vec_push(Vec* vec, const void* item) {
+  Result result = vec_reserve(vec, vec->length + 1);
+  if (result != RESULT_OK) {
+    return result;
+  }
+
+  memcpy(vec_at(vec, vec->length), item, vec->item_size);
+  vec->length += 1;
+
+  return RESULT_OK;
 }
 
 // Drops items held by the vector and resets lenght and capacity.
