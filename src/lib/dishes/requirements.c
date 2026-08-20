@@ -1,12 +1,11 @@
 #include "requirements.h"
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../result.h"
 #include "../str.h"
+#include "../vec.h"
 
 static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement) {

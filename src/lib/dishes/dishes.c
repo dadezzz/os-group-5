@@ -3,10 +3,10 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../result.h"
 #include "../str.h"
+#include "../vec.h"
 #include "requirements.h"
 
 static Result parse_dish(const char* str, Dish* dish) {

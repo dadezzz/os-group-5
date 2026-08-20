@@ -4,6 +4,7 @@
 #include <pthread.h>
 
 #include "../fifo-queue.h"
+#include "../result.h"
 #include "../state/dish-ticket.h"
 
 typedef struct {

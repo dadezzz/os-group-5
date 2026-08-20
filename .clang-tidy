@@ -8,6 +8,8 @@ Checks:
   - concurrency-*
   - bugprone-*
   - modernize-*
+  - misc-*
+  - llvm-header-guard
   - -bugprone-easily-swappable-parameters
   - -readability-identifier-length
   - -readability-magic-numbers
