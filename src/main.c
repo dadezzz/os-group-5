@@ -4,6 +4,7 @@
 #include "lib/config.h"
 #include "lib/dishes/dishes.h"
 #include "lib/resources.h"
+#include "lib/restaurant.h"
 #include "lib/result.h"
 #include "lib/rng.h"
 #include "lib/threads/cook.h"
@@ -27,6 +28,9 @@ int main() {
     vec_init(&dishes, sizeof(Dish));
     result = dishes_load(config.menu_file, &dishes);
   }
+
+  Restaurant restaurant;
+  restaurant_init(&restaurant, config.max_customers);
 
   RNGState* rng_state;
   if (result == RESULT_OK) {
@@ -71,6 +75,7 @@ int main() {
   vec_drop(&cooks, nullptr);
 
   rng_drop_state(rng_state);
+  restaurant_drop(&restaurant);
   vec_drop(&dishes, dish_drop);
   vec_drop(&resources, resource_drop);
   config_drop(&config);
