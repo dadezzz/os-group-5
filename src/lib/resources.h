@@ -12,6 +12,6 @@ typedef struct {
 
 Result resources_load(const char* file_path, Vec* resources);
 
-void resources_drop(Vec* resources);
+void resource_drop(void* arg);
 
 #endif

@@ -45,9 +45,16 @@ void* vec_at(Vec* vec, size_t i) {
 
 // Drops items held by the vector and resets lenght and capacity.
 // The vector is still usable after this, with the same item_size.
-void vec_drop(Vec* vec) {
+void vec_drop(Vec* vec, void (*drop_cb)(void*)) {
   if (vec == nullptr) {
     return;
+  }
+
+  for (size_t i = 0; i < vec->length; ++i) {
+    void* item = vec_at(vec, i);
+    if (drop_cb != nullptr) {
+      drop_cb(item);
+    }
   }
 
   free(vec->items);

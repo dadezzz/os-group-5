@@ -14,6 +14,6 @@ typedef struct {
 
 Result dishes_load(const char* file_path, Vec* dishes);
 
-void dishes_drop(Vec* dishes);
+void dish_drop(void* arg);
 
 #endif

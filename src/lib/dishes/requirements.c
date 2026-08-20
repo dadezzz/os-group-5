@@ -70,13 +70,13 @@ Result requirements_load(const char* requirements_str, Vec* requirements) {
     Result result = parse_requirement(requirement_str, &new_requirement);
     free(requirement_str);
     if (result != RESULT_OK) {
-      free(new_requirement.name);
+      requirement_drop(&new_requirement);
       return result;
     }
 
     result = vec_push(requirements, &new_requirement);
     if (result != RESULT_OK) {
-      free(new_requirement.name);
+      requirement_drop(&new_requirement);
       return result;
     }
   }
@@ -88,15 +88,11 @@ Result requirements_load(const char* requirements_str, Vec* requirements) {
   return RESULT_OK;
 }
 
-void requirements_drop(Vec* requirements) {
-  if (requirements == nullptr) {
+void requirement_drop(void* arg) {
+  if (arg == nullptr) {
     return;
   }
 
-  for (size_t i = 0; i < requirements->length; ++i) {
-    Requirement* requirement = vec_at(requirements, i);
-    free(requirement->name);
-  }
-
-  vec_drop(requirements);
+  Requirement* requirement = arg;
+  free(requirement->name);
 }
