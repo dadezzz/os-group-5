@@ -5,14 +5,15 @@
 
 #include "../fifo-queue.h"
 #include "../result.h"
-#include "../state/dish-ticket.h"
 #include "../rng.h"
+#include "../state/dish-ticket.h"
 
-typedef struct {
+typedef struct Cook {
   pthread_t tid;
   FIFOQueue task_q;
   int queued_time;
   RNGState* rng;
+  bool terminate;
 } Cook;
 
 Result cook_assign(DishTicket* dish_ticket, Cook* cook);

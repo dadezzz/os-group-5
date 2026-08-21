@@ -7,7 +7,7 @@
 #include "../result.h"
 #include "../rng.h"
 
-typedef struct {
+typedef struct Customer {
   pthread_t tid;
   RNGState* rng;
   sem_t* seats;

@@ -128,5 +128,5 @@ void dish_drop(void* arg) {
 
   Dish* dish = arg;
   free(dish->name);
-  vec_drop(&dish->requirements, requirement_drop);
+  vec_drop(&dish->requirements, nullptr);
 }

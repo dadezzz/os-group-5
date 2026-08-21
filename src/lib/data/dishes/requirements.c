@@ -85,13 +85,11 @@ Result requirements_load(const char* requirements_str,
         parse_requirement(requirement_str, &new_requirement, resources);
     free(requirement_str);
     if (result != RESULT_OK) {
-      requirement_drop(&new_requirement);
       return result;
     }
 
     result = vec_push(requirements, &new_requirement);
     if (result != RESULT_OK) {
-      requirement_drop(&new_requirement);
       return result;
     }
   }
@@ -101,13 +99,4 @@ Result requirements_load(const char* requirements_str,
   }
 
   return RESULT_OK;
-}
-
-void requirement_drop(void* arg) {
-  if (arg == nullptr) {
-    return;
-  }
-
-  Requirement* requirement = arg;
-  resource_drop(requirement->resource);
 }
