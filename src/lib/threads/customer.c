@@ -15,8 +15,10 @@ static Result customer_run(void* void_customer) {
   return RESULT_OK;
 }
 
-Result customer_init(Customer* customer, RNGState* rng, sem_t* seats) {
-  customer->rng = rng;
+Result customer_init(Customer* customer,
+                     RNGState* rng_main_state,
+                     sem_t* seats) {
+  rng_state_init_thread(rng_main_state, &customer->rng);
   customer->seats = seats;
   sem_wait(customer->seats);
 
@@ -29,8 +31,6 @@ Result customer_drop(Customer* customer) {
   }
 
   Result result = thread_drop(customer->tid);
-
-  rng_drop_state(customer->rng);
 
   return result;
 }

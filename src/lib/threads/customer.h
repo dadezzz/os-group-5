@@ -9,11 +9,13 @@
 
 typedef struct Customer {
   pthread_t tid;
-  RNGState* rng;
+  RNGState rng;
   sem_t* seats;
 } Customer;
 
-Result customer_init(Customer* customer, RNGState* rng, sem_t* seats);
+Result customer_init(Customer* customer,
+                     RNGState* rng_main_state,
+                     sem_t* seats);
 
 Result customer_drop(Customer* customer);
 

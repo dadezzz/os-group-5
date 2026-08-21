@@ -12,13 +12,13 @@ typedef struct Cook {
   pthread_t tid;
   FIFOQueue task_q;
   int queued_time;
-  RNGState* rng;
+  RNGState rng;
   bool terminate;
 } Cook;
 
 Result cook_assign(DishTicket* dish_ticket, Cook* cook);
 
-Result cook_init(Cook* cook, RNGState* rng);
+Result cook_init(Cook* cook, RNGState* rng_main_state);
 
 Result cook_drop(Cook* cook);
 

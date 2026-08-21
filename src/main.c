@@ -33,9 +33,9 @@ int main() {
   Restaurant restaurant;
   restaurant_init(&restaurant, config.max_customers);
 
-  RNGState* rng_state;
+  RNGState rng_state;
   if (result == RESULT_OK) {
-    rng_state = rng_new_main_state((uint64_t)config.random_seed);
+    rng_state_init_main(&rng_state, (uint64_t)config.random_seed);
   }
 
   Vec cooks;
@@ -49,7 +49,7 @@ int main() {
   for (size_t i = 0; result == RESULT_OK && i < cooks.length; ++i) {
     // Initialize all cooks in place.
     Cook* cook = vec_at(&cooks, i);
-    result = cook_init(cook, rng_new_thread_state(rng_state));
+    result = cook_init(cook, &rng_state);
   }
 
   Vec waiters;
@@ -60,7 +60,7 @@ int main() {
   }
   for (size_t i = 0; result == RESULT_OK && i < waiters.length; ++i) {
     Waiter* waiter = vec_at(&waiters, i);
-    result = waiter_init(waiter, rng_new_thread_state(rng_state));
+    result = waiter_init(waiter, &rng_state);
   }
 
   Vec customers;
@@ -71,8 +71,7 @@ int main() {
   }
   for (size_t i = 0; result == RESULT_OK && i < customers.length; ++i) {
     Customer* customer = vec_at(&customers, i);
-    result = customer_init(customer, rng_new_thread_state(rng_state),
-                           &restaurant.seats);
+    result = customer_init(customer, &rng_state, &restaurant.seats);
   }
 
   // Cleanup.
@@ -102,7 +101,6 @@ int main() {
   }
   vec_drop(&cooks, nullptr);
 
-  rng_drop_state(rng_state);
   restaurant_drop(&restaurant);
   vec_drop(&dishes, dish_drop);
   vec_drop(&resources, resource_drop);

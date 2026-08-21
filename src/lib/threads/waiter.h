@@ -12,14 +12,14 @@ typedef struct Waiter {
   pthread_t tid;
   FIFOQueue ready_q;
   int queued_time;
-  RNGState* rng;
-  pthread_mutex_t work_mutex;
+  RNGState rng;
+  pthread_mutex_t mutex;
   bool terminate;
 } Waiter;
 
 Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket);
 
-Result waiter_init(Waiter* waiter, RNGState* rng);
+Result waiter_init(Waiter* waiter, RNGState* rng_main_state);
 
 Result waiter_drop(Waiter* waiter);
 
