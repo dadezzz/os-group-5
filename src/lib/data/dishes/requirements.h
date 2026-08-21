@@ -11,7 +11,8 @@ typedef struct Requirement {
 } Requirement;
 
 Result requirements_load(const char* requirements_str,
-                         Vec* requirements,
-                         Vec* resources);
+                         Vec* requirements,  // Vec<Requirement>
+                         Vec* resources      // Vec<Resource>
+);
 
 #endif

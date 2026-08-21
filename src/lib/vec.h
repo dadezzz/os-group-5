@@ -14,7 +14,7 @@ typedef struct Vec {
 
 void vec_init(Vec* vec, size_t item_size);
 
-Result vec_reserve(Vec* vec, size_t length) ;
+Result vec_reserve(Vec* vec, size_t length);
 
 Result vec_push(Vec* vec, const void* item);
 

@@ -9,7 +9,10 @@
 #include "../../vec.h"
 #include "requirements.h"
 
-static Result parse_dish(const char* str, Dish* dish, Vec* resources) {
+static Result parse_dish(const char* str,
+                         Dish* dish,
+                         Vec* resources  // Vec<Resource>
+) {
   size_t name_bytes = read_str_until_char(str, &dish->name, ',');
 
   if (name_bytes == 0 || str[name_bytes] == '\0') {
@@ -63,7 +66,10 @@ static Result parse_dish(const char* str, Dish* dish, Vec* resources) {
   return RESULT_OK;
 }
 
-static Result parse_file(FILE* file, Vec* dishes, Vec* resources) {
+static Result parse_file(FILE* file,
+                         Vec* dishes,    // Vec<Dish>
+                         Vec* resources  // Vec<Resource>
+) {
   // Skip reading the first line (CSV header).
   read_file_until_char(file, nullptr, '\n');
 
@@ -101,7 +107,10 @@ static Result parse_file(FILE* file, Vec* dishes, Vec* resources) {
   return RESULT_OK;
 }
 
-Result dishes_load(const char* file_path, Vec* dishes, Vec* resources) {
+Result dishes_load(const char* file_path,
+                   Vec* dishes,    // Vec<Dish>
+                   Vec* resources  // Vec<Resource>
+) {
   FILE* file = fopen(file_path, "r");
 
   if (file == nullptr) {
