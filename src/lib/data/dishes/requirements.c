@@ -12,26 +12,30 @@
 static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement,
                                 Vec* resources) {
-  char* req_name;
-  size_t name_bytes = read_str_until_char(requirement_str, &req_name, ':');
+  char* name;
+  size_t name_bytes = read_str_until_char(requirement_str, &name, ':');
 
   // Return error if the first character was ':' or there was no name.
   if (name_bytes == 0) {
+    free(name);
     return RESULT_DISHES_FILE_INVALID;
   }
 
   // Link required resource
   for (size_t i = 0; i < resources->length; i++) {
     Resource* resource = vec_at(resources, i);
-    if (strcmp(req_name, resource->name) == 0) {
+    if (strcmp(name, resource->name) == 0) {
       requirement->resource = resource;
     }
   }
 
   // Make sure link exists
   if (requirement->resource == nullptr) {
+    free(name);
     return RESULT_DISHES_RESOURCE_NOT_FOUND;
   }
+
+  free(name);
 
   // Try to read the quantity value if a colon was found.
   if (requirement_str[name_bytes] == ':') {

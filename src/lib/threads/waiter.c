@@ -1,6 +1,7 @@
 #include "waiter.h"
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
@@ -9,33 +10,43 @@
 #include "wrapper.h"
 
 Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket) {
-  pthread_mutex_lock(&waiter->mutex);
-  Result result = queue_push(&waiter->ready_q, dish_ticket);
-  pthread_mutex_unlock(&waiter->mutex);
-  return result;
+  pthread_mutex_lock(&waiter->mtx);
+
+  // Assumes that dish_ticket was allocated by the cook's task_q and reuses the
+  // memory.
+  Result result = queue_push_allocated(&waiter->ready_q, dish_ticket);
+  if (result != RESULT_OK) {
+    pthread_mutex_unlock(&waiter->mtx);
+    return result;
+  }
+
+  pthread_mutex_unlock(&waiter->mtx);
+  sem_post(&waiter->sem);
+
+  return RESULT_OK;
 }
 
 static Result waiter_thread(void* void_waiter) {
   Waiter* waiter = void_waiter;
 
   while (true) {
-    pthread_mutex_lock(&waiter->mutex);
-    if (waiter->terminate) {
-      pthread_mutex_unlock(&waiter->mutex);
-      break;
-    }
-    pthread_mutex_unlock(&waiter->mutex);
+    if (sem_trywait(&waiter->sem) == 0) {
+      pthread_mutex_lock(&waiter->mtx);
 
-    while (true) {
-      pthread_mutex_lock(&waiter->mutex);
       DishTicket* dish_ticket = queue_pop(&waiter->ready_q);
-      pthread_mutex_unlock(&waiter->mutex);
 
       if (dish_ticket != nullptr) {
+        pthread_mutex_unlock(&waiter->mtx);
+
         // TODO: give plate to customer
-      } else {
-        // Queue was empty;
+
+        // TODO : free dish_ticket if it is not passed to customer
+      } else if (waiter->should_terminate) {
+        // Terminate after having emptied the queue.
+        pthread_mutex_unlock(&waiter->mtx);
         break;
+      } else {
+        pthread_mutex_unlock(&waiter->mtx);
       }
     }
 
@@ -51,10 +62,11 @@ static Result waiter_thread(void* void_waiter) {
 }
 
 Result waiter_init(Waiter* waiter, RNGState* rng_main_state) {
-  waiter->terminate = false;
   rng_state_init_thread(rng_main_state, &waiter->rng);
-  pthread_mutex_init(&waiter->mutex, nullptr);
   queue_init(&waiter->ready_q, sizeof(DishTicket));
+  pthread_mutex_init(&waiter->mtx, nullptr);
+  sem_init(&waiter->sem, 0, 0);
+  waiter->should_terminate = false;
   return thread_init(&waiter->tid, waiter_thread, waiter);
 }
 
@@ -63,13 +75,15 @@ Result waiter_drop(Waiter* waiter) {
     return RESULT_OK;
   }
 
-  pthread_mutex_lock(&waiter->mutex);
-  waiter->terminate = true;
-  pthread_mutex_unlock(&waiter->mutex);
+  pthread_mutex_lock(&waiter->mtx);
+  waiter->should_terminate = true;
+  pthread_mutex_unlock(&waiter->mtx);
+  sem_post(&waiter->sem);
 
   Result result = thread_drop(waiter->tid);
 
-  pthread_mutex_destroy(&waiter->mutex);
+  pthread_mutex_destroy(&waiter->mtx);
+  sem_destroy(&waiter->sem);
   queue_drop(&waiter->ready_q, dish_ticket_drop);
 
   return result;
