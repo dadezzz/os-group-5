@@ -13,16 +13,18 @@ typedef struct FIFOQueueNode {
 } FIFOQueueNode;
 
 typedef struct FIFOQueue {
-  size_t item_size;
+  size_t value_size;
   FIFOQueueNode* head;
   FIFOQueueNode* tail;
 } FIFOQueue;
 
-void queue_init(FIFOQueue* queue, size_t item_size);
+void queue_init(FIFOQueue* queue, size_t value_size);
 
 bool queue_is_empty(FIFOQueue* queue);
 
-Result queue_push(FIFOQueue* queue, const void* item);
+Result queue_push(FIFOQueue* queue, const void* value);
+
+Result queue_push_allocated(FIFOQueue* queue, void* value);
 
 void* queue_pop(FIFOQueue* queue);
 

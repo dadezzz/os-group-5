@@ -11,6 +11,8 @@ typedef struct Customer {
   pthread_t tid;
   RNGState rng;
   sem_t* seats;
+  // Used to prevent use-after-free on the DishTicket.
+  bool has_left;
 } Customer;
 
 Result customer_init(Customer* customer,

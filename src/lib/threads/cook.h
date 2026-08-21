@@ -2,6 +2,7 @@
 #define COOK_H
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
@@ -13,7 +14,9 @@ typedef struct Cook {
   FIFOQueue task_q;
   int queued_time;
   RNGState rng;
-  bool terminate;
+  pthread_mutex_t mtx;
+  sem_t sem;
+  bool should_terminate;
 } Cook;
 
 Result cook_assign(DishTicket* dish_ticket, Cook* cook);

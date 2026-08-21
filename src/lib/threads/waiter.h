@@ -2,6 +2,7 @@
 #define WAITER_H
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
@@ -13,8 +14,9 @@ typedef struct Waiter {
   FIFOQueue ready_q;
   int queued_time;
   RNGState rng;
-  pthread_mutex_t mutex;
-  bool terminate;
+  pthread_mutex_t mtx;
+  sem_t sem;
+  bool should_terminate;
 } Waiter;
 
 Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket);
