@@ -27,7 +27,7 @@ int main() {
   Vec dishes;
   if (result == RESULT_OK) {
     vec_init(&dishes, sizeof(Dish));
-    result = dishes_load(config.menu_file, &dishes);
+    result = dishes_load(config.menu_file, &dishes, &resources);
   }
 
   Restaurant restaurant;
