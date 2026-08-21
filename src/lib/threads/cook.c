@@ -29,8 +29,8 @@ static Result cook_run(void* void_cook) {
   return RESULT_OK;
 }
 
-Result cook_init(Cook* cook, RNGState* rng) {
-  cook->rng = rng;
+Result cook_init(Cook* cook, RNGState* rng_main_state) {
+  rng_state_init_thread(rng_main_state, &cook->rng);
   cook->queued_time = 0;
   queue_init(&cook->task_q, sizeof(DishTicket));
 
@@ -45,7 +45,6 @@ Result cook_drop(Cook* cook) {
   Result result = thread_drop(cook->tid);
 
   queue_drop(&cook->task_q, dish_ticket_drop);
-  rng_drop_state(cook->rng);
 
   return result;
 }

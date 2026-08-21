@@ -14,10 +14,8 @@ typedef struct RNGState {
 
 uint64_t rng_next(RNGState* state);
 
-RNGState* rng_new_main_state(uint64_t seed);
+void rng_state_init_main(RNGState* state, uint64_t seed);
 
-RNGState* rng_new_thread_state(RNGState* mainState);
-
-void rng_drop_state(RNGState* state);
+void rng_state_init_thread(RNGState* main_state, RNGState* thread_state);
 
 #endif

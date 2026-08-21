@@ -4,7 +4,6 @@
 #include "rng.h"
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 static inline uint64_t rotl(const uint64_t x, int k) {
@@ -65,31 +64,20 @@ uint64_t rng_next(RNGState* state) {
 }
 
 // Creates a new `RNGState` with the provided seed.
-RNGState* rng_new_main_state(uint64_t seed) {
-  RNGState* state = malloc(sizeof(RNGState));
-
+void rng_state_init_main(RNGState* state, uint64_t seed) {
   // To avoid complications, we just repeat the seed over the 4 ints of state.
   for (int i = 0; i < 4; ++i) {
     state->data[i] = seed;
   }
-
-  return state;
 }
 
 // Creates a new `RNGState` for a thread based on the current main thread
 // `RNGState`.
-RNGState* rng_new_thread_state(RNGState* mainState) {
-  RNGState* state = malloc(sizeof(RNGState));
-  memcpy(state, mainState, sizeof(RNGState));
+void rng_state_init_thread(RNGState* main_state, RNGState* thread_state) {
+  // Use the current main_state for the thread and then jump on main.
+  memcpy(thread_state, main_state, sizeof(RNGState));
 
-  // Leave a gap in the mainState so that it doesn't overlap with the state in
+  // Leave a gap in the main_state so that it doesn't overlap with the state in
   // the new thread.
-  jump(mainState);
-
-  return state;
-}
-
-// Cleans up RNGState resources.
-void rng_drop_state(RNGState* state) {
-  free(state);
+  jump(main_state);
 }
