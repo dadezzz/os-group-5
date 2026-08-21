@@ -8,11 +8,13 @@ typedef struct Dish {
   char* name;
   int price;
   int cook_time;
-  // Vec of Requirement.
-  Vec requirements;
+  Vec requirements;  // Vec<Requirement>
 } Dish;
 
-Result dishes_load(const char* file_path, Vec* dishes, Vec* resources);
+Result dishes_load(const char* file_path,
+                   Vec* dishes,    // Vec<Dish>
+                   Vec* resources  // Vec<Resource>
+);
 
 void dish_drop(void* arg);
 

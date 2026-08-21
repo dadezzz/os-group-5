@@ -10,7 +10,8 @@ typedef struct Resource {
   int clean_time;
 } Resource;
 
-Result resources_load(const char* file_path, Vec* resources);
+Result resources_load(const char* file_path, Vec* resources  // Vec<Resource>
+);
 
 void resource_drop(void* arg);
 

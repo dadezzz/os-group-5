@@ -45,7 +45,8 @@ static Result parse_resource(const char* resource_str, Resource* resource) {
   return RESULT_OK;
 }
 
-static Result parse_file(FILE* file, Vec* resources) {
+static Result parse_file(FILE* file, Vec* resources  // Vec<Resource>
+) {
   // Skip reading the first line (CSV header).
   read_file_until_char(file, nullptr, '\n');
 
@@ -83,7 +84,8 @@ static Result parse_file(FILE* file, Vec* resources) {
   return RESULT_OK;
 }
 
-Result resources_load(const char* file_path, Vec* resources) {
+Result resources_load(const char* file_path, Vec* resources  //  Vec<Resource>
+) {
   FILE* file = fopen(file_path, "r");
   if (file == nullptr) {
     return RESULT_RESOURCES_FILE_NOT_OPENED;

@@ -9,9 +9,12 @@
 #include "../../vec.h"
 #include "../resources.h"
 
+// TODO: deduplicate requirement if it points to the same resource.
+
 static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement,
-                                Vec* resources) {
+                                Vec* resources  // Vec<Resource>
+) {
   char* name;
   size_t name_bytes = read_str_until_char(requirement_str, &name, ':');
 
@@ -59,8 +62,9 @@ static Result parse_requirement(const char* requirement_str,
 }
 
 Result requirements_load(const char* requirements_str,
-                         Vec* requirements,
-                         Vec* resources) {
+                         Vec* requirements,  // Vec<Requirement>
+                         Vec* resources      // Vec<Resource>
+) {
   // This is like a cursor to advance parsing with sscanf.
   size_t total_bytes_read = 0;
 
