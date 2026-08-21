@@ -4,7 +4,7 @@
 #include "../../result.h"
 #include "../../vec.h"
 
-typedef struct {
+typedef struct Requirement {
   char* name;
   int quantity;
 } Requirement;

@@ -4,7 +4,7 @@
 #include "../result.h"
 #include "../vec.h"
 
-typedef struct {
+typedef struct Resource {
   char* name;
   int quantity;
   int clean_time;

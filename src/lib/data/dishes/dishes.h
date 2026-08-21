@@ -4,7 +4,7 @@
 #include "../../result.h"
 #include "../../vec.h"
 
-typedef struct {
+typedef struct Dish {
   char* name;
   int price;
   int cook_time;

@@ -7,12 +7,12 @@
 
 #include "result.h"
 
-typedef struct FIFOQueueNodeT {
+typedef struct FIFOQueueNode {
   void* value;
-  struct FIFOQueueNodeT* next;
+  struct FIFOQueueNode* next;
 } FIFOQueueNode;
 
-typedef struct {
+typedef struct FIFOQueue {
   size_t item_size;
   FIFOQueueNode* head;
   FIFOQueueNode* tail;
