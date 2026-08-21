@@ -8,6 +8,8 @@
 #include "../../str.h"
 #include "../../vec.h"
 
+// TODO: deduplicate requirement if it points to the same resource.
+
 static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement,
                                 Vec* resources) {
