@@ -12,7 +12,7 @@ typedef struct {
   Vec requirements;
 } Dish;
 
-Result dishes_load(const char* file_path, Vec* dishes);
+Result dishes_load(const char* file_path, Vec* dishes, Vec* resources);
 
 void dish_drop(void* arg);
 

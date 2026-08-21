@@ -9,7 +9,7 @@
 #include "../../vec.h"
 #include "requirements.h"
 
-static Result parse_dish(const char* str, Dish* dish) {
+static Result parse_dish(const char* str, Dish* dish, Vec* resources) {
   size_t name_bytes = read_str_until_char(str, &dish->name, ',');
 
   if (name_bytes == 0 || str[name_bytes] == '\0') {
@@ -53,7 +53,8 @@ static Result parse_dish(const char* str, Dish* dish) {
   }
 
   vec_init(&dish->requirements, sizeof(Requirement));
-  Result result = requirements_load(requirements_str, &dish->requirements);
+  Result result =
+      requirements_load(requirements_str, &dish->requirements, resources);
   free(requirements_str);
   if (result != RESULT_OK) {
     return result;
@@ -62,7 +63,7 @@ static Result parse_dish(const char* str, Dish* dish) {
   return RESULT_OK;
 }
 
-static Result parse_file(FILE* file, Vec* dishes) {
+static Result parse_file(FILE* file, Vec* dishes, Vec* resources) {
   // Skip reading the first line (CSV header).
   read_file_until_char(file, nullptr, '\n');
 
@@ -83,7 +84,7 @@ static Result parse_file(FILE* file, Vec* dishes) {
     }
 
     Dish new_dish = {};
-    Result result = parse_dish(line_str, &new_dish);
+    Result result = parse_dish(line_str, &new_dish, resources);
     free(line_str);
     if (result != RESULT_OK) {
       dish_drop(&new_dish);
@@ -100,14 +101,14 @@ static Result parse_file(FILE* file, Vec* dishes) {
   return RESULT_OK;
 }
 
-Result dishes_load(const char* file_path, Vec* dishes) {
+Result dishes_load(const char* file_path, Vec* dishes, Vec* resources) {
   FILE* file = fopen(file_path, "r");
 
   if (file == nullptr) {
     return RESULT_DISHES_FILE_NOT_OPENED;
   }
 
-  Result result = parse_file(file, dishes);
+  Result result = parse_file(file, dishes, resources);
   fclose(file);
   if (result != RESULT_OK) {
     return result;

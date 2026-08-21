@@ -3,13 +3,14 @@
 
 #include "../../result.h"
 #include "../../vec.h"
+#include "../resources.h"
 
 typedef struct {
-  char* name;
+  Resource* resource;
   int quantity;
 } Requirement;
 
-Result requirements_load(const char* requirements_str, Vec* requirements);
+Result requirements_load(const char* requirements_str, Vec* requirements, Vec* resources);
 
 void requirement_drop(void* arg);
 
