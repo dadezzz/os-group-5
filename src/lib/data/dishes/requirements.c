@@ -2,19 +2,34 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../../result.h"
 #include "../../str.h"
 #include "../../vec.h"
 
 static Result parse_requirement(const char* requirement_str,
-                                Requirement* requirement) {
-  size_t name_bytes =
-      read_str_until_char(requirement_str, &requirement->name, ':');
+                                Requirement* requirement,
+                                Vec* resources) {
+  char* req_name;
+  size_t name_bytes = read_str_until_char(requirement_str, &req_name, ':');
 
   // Return error if the first character was ':' or there was no name.
   if (name_bytes == 0) {
     return RESULT_DISHES_FILE_INVALID;
+  }
+
+  // Link required resource
+  for (size_t i = 0; i < resources->length; i++) {
+    Resource* resource = vec_at(resources, i);
+    if (strcmp(req_name, resource->name) == 0) {
+      requirement->resource = resource;
+    }
+  }
+
+  // Make sure link exists
+  if (requirement->resource == nullptr) {
+    return RESULT_DISHES_RESOURCE_NOT_FOUND;
   }
 
   // Try to read the quantity value if a colon was found.
@@ -38,7 +53,9 @@ static Result parse_requirement(const char* requirement_str,
   return RESULT_OK;
 }
 
-Result requirements_load(const char* requirements_str, Vec* requirements) {
+Result requirements_load(const char* requirements_str,
+                         Vec* requirements,
+                         Vec* resources) {
   // This is like a cursor to advance parsing with sscanf.
   size_t total_bytes_read = 0;
 
@@ -64,16 +81,15 @@ Result requirements_load(const char* requirements_str, Vec* requirements) {
             : bytes_read;
 
     Requirement new_requirement = {};
-    Result result = parse_requirement(requirement_str, &new_requirement);
+    Result result =
+        parse_requirement(requirement_str, &new_requirement, resources);
     free(requirement_str);
     if (result != RESULT_OK) {
-      requirement_drop(&new_requirement);
       return result;
     }
 
     result = vec_push(requirements, &new_requirement);
     if (result != RESULT_OK) {
-      requirement_drop(&new_requirement);
       return result;
     }
   }
@@ -83,13 +99,4 @@ Result requirements_load(const char* requirements_str, Vec* requirements) {
   }
 
   return RESULT_OK;
-}
-
-void requirement_drop(void* arg) {
-  if (arg == nullptr) {
-    return;
-  }
-
-  Requirement* requirement = arg;
-  free(requirement->name);
 }
