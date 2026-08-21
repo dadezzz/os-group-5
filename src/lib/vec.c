@@ -55,9 +55,9 @@ void vec_drop(Vec* vec, void (*drop_cb)(void*)) {
     return;
   }
 
-  for (size_t i = 0; i < vec->length; ++i) {
-    void* item = vec_at(vec, i);
-    if (drop_cb != nullptr) {
+  if (drop_cb != nullptr) {
+    for (size_t i = 0; i < vec->length; ++i) {
+      void* item = vec_at(vec, i);
       drop_cb(item);
     }
   }

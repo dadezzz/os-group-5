@@ -3,7 +3,7 @@
 
 #include <semaphore.h>
 
-typedef struct {
+typedef struct Restaurant {
   sem_t seats;
 } Restaurant;
 

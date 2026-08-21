@@ -5,13 +5,13 @@
 #include "../../vec.h"
 #include "../resources.h"
 
-typedef struct {
+typedef struct Requirement {
   Resource* resource;
   int quantity;
 } Requirement;
 
-Result requirements_load(const char* requirements_str, Vec* requirements, Vec* resources);
-
-void requirement_drop(void* arg);
+Result requirements_load(const char* requirements_str,
+                         Vec* requirements,
+                         Vec* resources);
 
 #endif

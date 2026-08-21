@@ -3,7 +3,7 @@
 
 #include "result.h"
 
-typedef struct {
+typedef struct Config {
   int num_cooks;
   int num_waiters;
   int max_customers;

@@ -5,7 +5,7 @@
 
 #include "result.h"
 
-typedef struct {
+typedef struct Vec {
   void* items;
   size_t item_size;
   size_t length;

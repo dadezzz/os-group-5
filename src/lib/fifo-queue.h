@@ -7,22 +7,24 @@
 
 #include "result.h"
 
-typedef struct FIFOQueueNodeT {
+typedef struct FIFOQueueNode {
   void* value;
-  struct FIFOQueueNodeT* next;
+  struct FIFOQueueNode* next;
 } FIFOQueueNode;
 
-typedef struct {
-  size_t item_size;
+typedef struct FIFOQueue {
+  size_t value_size;
   FIFOQueueNode* head;
   FIFOQueueNode* tail;
 } FIFOQueue;
 
-void queue_init(FIFOQueue* queue, size_t item_size);
+void queue_init(FIFOQueue* queue, size_t value_size);
 
 bool queue_is_empty(FIFOQueue* queue);
 
-Result queue_push(FIFOQueue* queue, const void* item);
+Result queue_push(FIFOQueue* queue, const void* value);
+
+Result queue_push_allocated(FIFOQueue* queue, void* value);
 
 void* queue_pop(FIFOQueue* queue);
 

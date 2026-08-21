@@ -33,34 +33,34 @@ int main() {
   Restaurant restaurant;
   restaurant_init(&restaurant, config.max_customers);
 
-  RNGState* rng_state;
+  RNGState rng_state;
   if (result == RESULT_OK) {
-    rng_state = rng_new_main_state((uint64_t)config.random_seed);
+    rng_state_init_main(&rng_state, (uint64_t)config.random_seed);
+  }
+
+  Vec waiters;
+  if (result == RESULT_OK) {
+    vec_init(&waiters, sizeof(Waiter));
+    // Reserve enough space for all waiters to make sure that the array doesn't
+    // get moved in another memory location by a realloc.
+    waiters.length = config.num_waiters;
+    result = vec_reserve(&waiters, waiters.length);
+  }
+  for (size_t i = 0; result == RESULT_OK && i < waiters.length; ++i) {
+    // Initialize all waiters in place.
+    Waiter* waiter = vec_at(&waiters, i);
+    result = waiter_init(waiter, &rng_state);
   }
 
   Vec cooks;
   if (result == RESULT_OK) {
     vec_init(&cooks, sizeof(Cook));
     cooks.length = config.num_cooks;
-    // Reserve enough space for all cooks to make sure that the array doesn't
-    // get moved in another memory location by a realloc.
     result = vec_reserve(&cooks, cooks.length);
   }
   for (size_t i = 0; result == RESULT_OK && i < cooks.length; ++i) {
-    // Initialize all cooks in place.
     Cook* cook = vec_at(&cooks, i);
-    result = cook_init(cook, rng_new_thread_state(rng_state));
-  }
-
-  Vec waiters;
-  if (result == RESULT_OK) {
-    vec_init(&waiters, sizeof(Waiter));
-    waiters.length = config.num_waiters;
-    result = vec_reserve(&waiters, waiters.length);
-  }
-  for (size_t i = 0; result == RESULT_OK && i < waiters.length; ++i) {
-    Waiter* waiter = vec_at(&waiters, i);
-    result = waiter_init(waiter, rng_new_thread_state(rng_state));
+    result = cook_init(cook, &rng_state);
   }
 
   Vec customers;
@@ -71,11 +71,11 @@ int main() {
   }
   for (size_t i = 0; result == RESULT_OK && i < customers.length; ++i) {
     Customer* customer = vec_at(&customers, i);
-    result = customer_init(customer, rng_new_thread_state(rng_state),
-                           &restaurant.seats);
+    result = customer_init(customer, &rng_state, &restaurant.seats);
   }
 
   // Cleanup.
+
   for (size_t i = 0; i < customers.length; ++i) {
     Result local_result = customer_drop(vec_at(&customers, i));
     // Don't override the previous value that made the program fail.
@@ -86,14 +86,6 @@ int main() {
   }
   vec_drop(&customers, nullptr);
 
-  for (size_t i = 0; i < waiters.length; ++i) {
-    Result local_result = waiter_drop(vec_at(&waiters, i));
-    if (result == RESULT_OK) {
-      result = local_result;
-    }
-  }
-  vec_drop(&waiters, nullptr);
-
   for (size_t i = 0; i < cooks.length; ++i) {
     Result local_result = cook_drop(vec_at(&cooks, i));
     if (result == RESULT_OK) {
@@ -102,7 +94,16 @@ int main() {
   }
   vec_drop(&cooks, nullptr);
 
-  rng_drop_state(rng_state);
+  // Waiters must be dropped after cooks have finished because a cook might
+  // still hold references to the waiter in the DishTicket.
+  for (size_t i = 0; i < waiters.length; ++i) {
+    Result local_result = waiter_drop(vec_at(&waiters, i));
+    if (result == RESULT_OK) {
+      result = local_result;
+    }
+  }
+  vec_drop(&waiters, nullptr);
+
   restaurant_drop(&restaurant);
   vec_drop(&dishes, dish_drop);
   vec_drop(&resources, resource_drop);
