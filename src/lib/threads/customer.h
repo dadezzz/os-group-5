@@ -6,14 +6,21 @@
 
 #include "../result.h"
 #include "../rng.h"
+#include "../state/order.h"
 
 typedef struct Customer {
   pthread_t tid;
   RNGState rng;
+  pthread_mutex_t mtx;
   sem_t* seats;
+  Order* order;
+  bool order_placed;
+  int dishes_served;
   // Used to prevent use-after-free on the DishTicket.
   bool has_left;
 } Customer;
+
+void customer_serve(Customer* customer);
 
 Result customer_init(Customer* customer,
                      RNGState* rng_main_state,
