@@ -9,7 +9,7 @@
 void customer_serve(Customer* customer) {
   pthread_mutex_lock(&customer->mtx);
 
-  customer->dishes_served++;
+  customer->order->pending_dishes--;
 
   pthread_mutex_unlock(&customer->mtx);
 }
@@ -31,7 +31,6 @@ Result customer_init(Customer* customer,
 
   // TODO: create an order with random dishes
 
-  customer->dishes_served = 0;
   customer->seats = seats;
   sem_wait(customer->seats);
 
