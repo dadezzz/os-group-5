@@ -4,22 +4,20 @@
 #include <pthread.h>
 
 #include "../data/dishes/dishes.h"
+#include "order.h"
 
 // Forward declare these to avoid circular header dependencies.
-typedef struct Customer Customer;
 typedef struct Waiter Waiter;
 
 typedef struct {
   Dish* dish;
-  Customer* customer;
+  Order* order;
   Waiter* waiter;
 } DishTicket;
 
 void dish_ticket_init(DishTicket* dish_ticket,
                       Dish* dish,
-                      Customer* customer,
+                      Order* order,
                       Waiter* waiter);
-
-void dish_ticket_drop(void* arg);
 
 #endif

@@ -2,11 +2,13 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdlib.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
 #include "../rng.h"
 #include "../state/dish-ticket.h"
+#include "customer.h"
 #include "wrapper.h"
 
 Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket) {
@@ -14,7 +16,8 @@ Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket) {
 
   // Assumes that dish_ticket was allocated by the cook's task_q and reuses the
   // memory.
-  Result result = queue_push_allocated(&waiter->ready_q, dish_ticket);
+  Result result =
+      queue_push_allocated(&waiter->ready_dish_tickets, dish_ticket);
   if (result != RESULT_OK) {
     pthread_mutex_unlock(&waiter->mtx);
     return result;
@@ -33,14 +36,12 @@ static Result waiter_thread(void* void_waiter) {
     if (sem_trywait(&waiter->sem) == 0) {
       pthread_mutex_lock(&waiter->mtx);
 
-      DishTicket* dish_ticket = queue_pop(&waiter->ready_q);
+      DishTicket* dish_ticket = queue_pop(&waiter->ready_dish_tickets);
 
       if (dish_ticket != nullptr) {
         pthread_mutex_unlock(&waiter->mtx);
-
-        // TODO: give plate to customer
-
-        // TODO : free dish_ticket if it is not passed to customer
+        customer_serve(dish_ticket->order->customer);
+        free(dish_ticket);
       } else if (waiter->should_terminate) {
         // Terminate after having emptied the queue.
         pthread_mutex_unlock(&waiter->mtx);
@@ -53,6 +54,8 @@ static Result waiter_thread(void* void_waiter) {
     // Check every customer if they want to post an order.
     // - if yes post the order and break (give priority to serving and taking
     // orders).
+    // - set customer.wants_to_order to false to avoid duplicate order taking.
+
     // - else go on to entertain client.
 
     // Entertain a random customer
@@ -63,7 +66,7 @@ static Result waiter_thread(void* void_waiter) {
 
 Result waiter_init(Waiter* waiter, RNGState* rng_main_state) {
   rng_state_init_thread(rng_main_state, &waiter->rng);
-  queue_init(&waiter->ready_q, sizeof(DishTicket));
+  queue_init(&waiter->ready_dish_tickets, sizeof(DishTicket));
   pthread_mutex_init(&waiter->mtx, nullptr);
   sem_init(&waiter->sem, 0, 0);
   waiter->should_terminate = false;
@@ -84,7 +87,7 @@ Result waiter_drop(Waiter* waiter) {
 
   pthread_mutex_destroy(&waiter->mtx);
   sem_destroy(&waiter->sem);
-  queue_drop(&waiter->ready_q, dish_ticket_drop);
+  queue_drop(&waiter->ready_dish_tickets, nullptr);
 
   return result;
 }
