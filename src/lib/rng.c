@@ -64,7 +64,7 @@ uint64_t rng_next(RNGState* state) {
 }
 
 // Creates a new `RNGState` with the provided seed.
-void rng_state_init_main(RNGState* state, uint64_t seed) {
+void rng_init_main(RNGState* state, uint64_t seed) {
   // To avoid complications, we just repeat the seed over the 4 ints of state.
   for (int i = 0; i < 4; ++i) {
     state->data[i] = seed;
@@ -73,7 +73,7 @@ void rng_state_init_main(RNGState* state, uint64_t seed) {
 
 // Creates a new `RNGState` for a thread based on the current main thread
 // `RNGState`.
-void rng_state_init_thread(RNGState* main_state, RNGState* thread_state) {
+void rng_init_thread(RNGState* main_state, RNGState* thread_state) {
   // Use the current main_state for the thread and then jump on main.
   memcpy(thread_state, main_state, sizeof(RNGState));
 

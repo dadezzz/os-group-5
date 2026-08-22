@@ -4,14 +4,14 @@
 #include "result.h"
 
 typedef struct Config {
-  int num_cooks;
-  int num_waiters;
-  int max_customers;
-  int total_customers;
+  unsigned int num_cooks;
+  unsigned int num_waiters;
+  unsigned int max_customers;
+  unsigned int total_customers;
   const char* menu_file;
   const char* resources_file;
   double game_speed;
-  int random_seed;
+  unsigned int random_seed;
 } Config;
 
 Result config_load(Config* config);

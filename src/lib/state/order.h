@@ -7,12 +7,12 @@
 typedef struct Customer Customer;
 
 typedef struct {
-  Vec* dishes;
+  Vec dishes;
   Customer* customer;
   size_t dishes_served;
 } Order;
 
-void order_init(Order* order, Vec* dishes, Customer* customer);
+void order_init(Order* order, Customer* customer);
 
 void order_drop(Order* order);
 
