@@ -2,11 +2,10 @@
 
 #include <pthread.h>
 #include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "../data/dishes/requirements.h"
 #include "../data/resources.h"
+#include "../result.h"
 #include "../vec.h"
 
 // acquired is used remember exactly which resources were acquired by the cook.

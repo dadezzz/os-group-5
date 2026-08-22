@@ -11,8 +11,7 @@
 
 typedef struct Waiter {
   pthread_t tid;
-  FIFOQueue ready_q;
-  int queued_time;
+  FIFOQueue ready_dish_tickets;  // FIFOQueue<DishTicket>
   RNGState rng;
   pthread_mutex_t mtx;
   sem_t sem;

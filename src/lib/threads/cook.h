@@ -11,7 +11,7 @@
 
 typedef struct Cook {
   pthread_t tid;
-  FIFOQueue task_q;
+  FIFOQueue dish_tickets;  // FIFOQueue<DishTicket>
   int queued_time;
   RNGState rng;
   pthread_mutex_t mtx;
@@ -19,7 +19,7 @@ typedef struct Cook {
   bool should_terminate;
 } Cook;
 
-Result cook_assign(DishTicket* dish_ticket, Cook* cook);
+Result cook_assign(Cook* cook, DishTicket* dish_ticket);
 
 Result cook_init(Cook* cook, RNGState* rng_main_state);
 

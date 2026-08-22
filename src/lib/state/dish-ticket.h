@@ -2,6 +2,7 @@
 #define DISH_TICKET_H
 
 #include <pthread.h>
+
 #include "../data/dishes/dishes.h"
 #include "order.h"
 
@@ -18,7 +19,5 @@ void dish_ticket_init(DishTicket* dish_ticket,
                       Dish* dish,
                       Order* order,
                       Waiter* waiter);
-
-void dish_ticket_drop(void* arg);
 
 #endif

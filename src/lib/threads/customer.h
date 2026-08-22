@@ -13,8 +13,8 @@ typedef struct Customer {
   RNGState rng;
   pthread_mutex_t mtx;
   sem_t* seats;
-  Order* order;
-  bool order_placed;
+  Order order;
+  bool wants_to_order;
   // Used to prevent use-after-free on the DishTicket.
   bool has_left;
 } Customer;

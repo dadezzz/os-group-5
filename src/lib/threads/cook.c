@@ -10,10 +10,10 @@
 #include "waiter.h"
 #include "wrapper.h"
 
-Result cook_assign(DishTicket* dish_ticket, Cook* cook) {
+Result cook_assign(Cook* cook, DishTicket* dish_ticket) {
   pthread_mutex_lock(&cook->mtx);
 
-  Result result = queue_push(&cook->task_q, dish_ticket);
+  Result result = queue_push(&cook->dish_tickets, dish_ticket);
   if (result != RESULT_OK) {
     pthread_mutex_unlock(&cook->mtx);
     return result;
@@ -27,7 +27,7 @@ Result cook_assign(DishTicket* dish_ticket, Cook* cook) {
   return RESULT_OK;
 }
 
-static Result cook_run(void* void_cook) {
+static Result cook_thread(void* void_cook) {
   Cook* cook = void_cook;
 
   while (true) {
@@ -35,7 +35,7 @@ static Result cook_run(void* void_cook) {
 
     pthread_mutex_lock(&cook->mtx);
 
-    DishTicket* dish_ticket = queue_pop(&cook->task_q);
+    DishTicket* dish_ticket = queue_pop(&cook->dish_tickets);
 
     if (dish_ticket != nullptr) {
       cook->queued_time -= dish_ticket->dish->cook_time;
@@ -59,11 +59,11 @@ static Result cook_run(void* void_cook) {
 Result cook_init(Cook* cook, RNGState* rng_main_state) {
   rng_state_init_thread(rng_main_state, &cook->rng);
   cook->queued_time = 0;
-  queue_init(&cook->task_q, sizeof(DishTicket));
+  queue_init(&cook->dish_tickets, sizeof(DishTicket));
   pthread_mutex_init(&cook->mtx, nullptr);
   sem_init(&cook->sem, 0, 0);
   cook->should_terminate = false;
-  return thread_init(&cook->tid, cook_run, cook);
+  return thread_init(&cook->tid, cook_thread, cook);
 }
 
 Result cook_drop(Cook* cook) {
@@ -80,7 +80,7 @@ Result cook_drop(Cook* cook) {
 
   pthread_mutex_destroy(&cook->mtx);
   sem_destroy(&cook->sem);
-  queue_drop(&cook->task_q, dish_ticket_drop);
+  queue_drop(&cook->dish_tickets, nullptr);
 
   return result;
 }
