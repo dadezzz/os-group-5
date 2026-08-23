@@ -16,7 +16,6 @@ typedef struct Customer {
   sem_t* seats;
   Order order;
   bool wants_to_order;
-  // Used to prevent use-after-free on the DishTicket.
   bool has_left;
   Restaurant* restaurant;
 } Customer;

@@ -6,6 +6,7 @@
 #include <stdatomic.h>
 #include <stddef.h>
 
+#include "../fifo-queue.h"
 #include "../result.h"
 #include "../rng.h"
 #include "../timer.h"
@@ -17,21 +18,23 @@ typedef struct Restaurant {
   pthread_mutex_t mtx;
   RNGState rng;
   unsigned int num_seats;
-  Vec customers;  // Vec<Cook>
-  Vec waiters;    // Vec<Waiter>
-  Vec cooks;      // Vec<Customer>
+  // Has to be a queue because we have references to customer that left in
+  // DishTicket and we cannot drop or move them until the program ends.
+  FIFOQueue customers;  // FIFOQueue<Customer>
+  Vec waiters;          // Vec<Waiter>
+  Vec cooks;            // Vec<Cook>
   Timer* timer;
   atomic_bool is_closing;
   Vec* dishes;
   Kitchen kitchen;
 } Restaurant;
 
-void restaurant_init(Restaurant* restaurant,
-                     Timer* timer,
-                     unsigned int rng_seed,
-                     unsigned int num_seats,
-                     Vec* resources,  // Vec<Resource>
-                     Vec* dishes      // Vec<Dish>
+Result restaurant_init(Restaurant* restaurant,
+                       Timer* timer,
+                       unsigned int rng_seed,
+                       unsigned int num_seats,
+                       Vec* resources,  // Vec<Resource>
+                       Vec* dishes      // Vec<Dish>
 );
 
 Result restaurant_spawn_cooks(Restaurant* restaurant, size_t quantity);
@@ -42,7 +45,7 @@ Result restaurant_spawn_customer(Restaurant* restaurant);
 
 bool restaurant_is_closing(Restaurant* restaurant);
 
-bool restaurant_is_empty(Restaurant* restaurant);
+bool restaurant_is_empty(Restaurant* restaurant, unsigned int expected_people);
 
 void restaurant_drop(Restaurant* restaurant);
 
