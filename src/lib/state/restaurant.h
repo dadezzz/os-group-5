@@ -10,6 +10,7 @@
 #include "../rng.h"
 #include "../timer.h"
 #include "../vec.h"
+#include "kitchen.h"
 
 typedef struct Restaurant {
   double score;
@@ -21,12 +22,17 @@ typedef struct Restaurant {
   Vec cooks;      // Vec<Customer>
   Timer* timer;
   atomic_bool is_closing;
+  Vec* dishes;
+  Kitchen kitchen;
 } Restaurant;
 
 void restaurant_init(Restaurant* restaurant,
                      Timer* timer,
                      unsigned int rng_seed,
-                     unsigned int num_seats);
+                     unsigned int num_seats,
+                     Vec* resources,  // Vec<Resource>
+                     Vec* dishes      // Vec<Dish>
+);
 
 Result restaurant_spawn_cooks(Restaurant* restaurant, size_t quantity);
 

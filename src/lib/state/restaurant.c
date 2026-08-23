@@ -12,15 +12,21 @@
 #include "../timer.h"
 #include "../vec.h"
 #include "dish-ticket.h"
+#include "kitchen.h"
 #include "order.h"
 
 void restaurant_init(Restaurant* restaurant,
                      Timer* timer,
                      unsigned int rng_seed,
-                     unsigned int num_seats) {
+                     unsigned int num_seats,
+                     Vec* resources,  // Vec<Resource>
+                     Vec* dishes      // Vec<Dish>
+) {
   restaurant->score = 0;
   restaurant->timer = timer;
+  restaurant->dishes = dishes;
   atomic_init(&restaurant->is_closing, false);
+  kitchen_init(&restaurant->kitchen, resources);
 
   rng_init_main(&restaurant->rng, rng_seed);
 
@@ -146,4 +152,5 @@ void restaurant_drop(Restaurant* restaurant) {
   vec_drop(&restaurant->customers, nullptr);
 
   pthread_mutex_destroy(&restaurant->mtx);
+  kitchen_drop(&restaurant->kitchen);
 }
