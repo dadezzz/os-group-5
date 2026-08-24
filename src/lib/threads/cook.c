@@ -1,7 +1,9 @@
 #include "cook.h"
 
+#include <math.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "../fifo-queue.h"
@@ -9,6 +11,7 @@
 #include "../rng.h"
 #include "../state/dish-ticket.h"
 #include "../state/restaurant.h"
+#include "../timer.h"
 #include "waiter.h"
 #include "wrapper.h"
 
@@ -20,24 +23,61 @@ static Result cook_thread(void* void_cook) {
 
     pthread_mutex_lock(&cook->mtx);
 
-    DishTicket* dish_ticket = queue_pop(&cook->dish_tickets);
+    DishTicket* dish_ticket = nullptr;
+    Vec acquired_resources;
+
+    fprintf(stderr, "here cook %lu\n", cook->tid);
+    for (FIFOQueueNode* node = cook->dish_tickets.head; node != nullptr;
+         node = node->next) {
+      dish_ticket = node->value;
+
+      Result result = kitchen_get_resources(&cook->restaurant->kitchen,
+                                            &dish_ticket->dish->requirements,
+                                            &acquired_resources);
+      if (result == RESULT_OK) {
+        break;
+      }
+    }
 
     if (dish_ticket != nullptr) {
       cook->queued_time -= dish_ticket->dish->cook_time;
       pthread_mutex_unlock(&cook->mtx);
 
-      // cook plate
+      // Clean resources if needed
+      for (size_t i = 0; i < acquired_resources.length; i++) {
+        KitchenResource** kitchen_resource_ref = vec_at(&acquired_resources, i);
+        KitchenResource* kitchen_resource = *kitchen_resource_ref;
+        double dirty_score = pow(2, kitchen_resource->dirtiness) *
+                             log2(1 + kitchen_resource->resource->clean_time);
+        double clean_score =
+            kitchen_resource->resource->clean_time *
+            (dish_ticket->dish->price / (dish_ticket->customer->patience -
+                                         dish_ticket->customer->time_waiting));
+
+        if (dirty_score < clean_score) {
+          continue;
+        }
+
+        sink_wash(&cook->restaurant->sink, kitchen_resource);
+      }
+
+      // Cook dish
+      timer_wait(cook->restaurant->timer, dish_ticket->dish->cook_time);
+      kitchen_drop_resources(&cook->restaurant->kitchen, &acquired_resources);
 
       Result result = waiter_assign(dish_ticket->waiter, dish_ticket);
       if (result != RESULT_OK) {
         return result;
       }
-    } else if (restaurant_is_closing(cook->restaurant)) {
+
+      continue;
+    }
+
+    pthread_mutex_unlock(&cook->mtx);
+
+    if (restaurant_is_closing(cook->restaurant)) {
       // Terminate after having emptied the queue.
-      pthread_mutex_unlock(&cook->mtx);
       break;
-    } else {
-      pthread_mutex_unlock(&cook->mtx);
     }
   }
 
