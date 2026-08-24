@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 #include "../fifo-queue.h"
@@ -12,6 +13,40 @@
 #include "../timer.h"
 #include "customer.h"
 #include "wrapper.h"
+
+const double ENTERTAIN_PROBABILITY = 0.6;
+
+static void entertain_customers(Waiter* waiter) {
+  Customer* customer_to_entertain = nullptr;
+  for (FIFOQueueNode* node = waiter->restaurant->customers.head;
+       node != nullptr; node = node->next) {
+    Customer* customer = node->value;
+    pthread_mutex_lock(&customer->mtx);
+
+    if (customer_to_entertain == nullptr) {
+      customer_to_entertain = customer;
+    }
+
+    if (customer->patience - customer->time_waiting <
+        customer_to_entertain->patience - customer_to_entertain->time_waiting) {
+      customer_to_entertain = customer;
+    }
+
+    pthread_mutex_unlock(&customer->mtx);
+  }
+
+  if (customer_to_entertain == nullptr) {
+    return;
+  }
+
+  pthread_mutex_lock(&customer_to_entertain->mtx);
+
+  customer_to_entertain->patience +=
+      customer_to_entertain->patience *
+      (rng_next_range(&waiter->rng, 2, 10) / 100.0);
+
+  pthread_mutex_unlock(&customer_to_entertain->mtx);
+}
 
 static Result waiter_thread(void* void_waiter) {
   Waiter* waiter = void_waiter;
@@ -71,7 +106,13 @@ static Result waiter_thread(void* void_waiter) {
 
     pthread_mutex_unlock(&waiter->restaurant->mtx);
 
-    // Entertain a random customer
+    // Decide if entertain a customer
+    int random = rng_next_range(&waiter->rng, 0, 99);
+    if (random < (ENTERTAIN_PROBABILITY * 100)) {
+      pthread_mutex_lock(&waiter->restaurant->mtx);
+      entertain_customers(waiter);
+      pthread_mutex_unlock(&waiter->restaurant->mtx);
+    }
 
     // Wait one tick, then if there's something to do, do it or try again to
     // entertain a customer.

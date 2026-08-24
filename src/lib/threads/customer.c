@@ -41,8 +41,7 @@ static Result customer_thread(void* void_customer) {
   Customer* customer = void_customer;
   fprintf(stderr, "customer %lu started\n", customer->tid);
 
-  // TODO: make this random.
-  int ticks_to_wait = 5;
+  int ticks_to_wait = rng_next_range(&customer->rng, 5, 25);
   timer_wait(customer->restaurant->timer, ticks_to_wait);
   pthread_mutex_lock(&customer->mtx);
   customer->wants_to_order = true;
@@ -89,14 +88,27 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
   rng_init_thread(&restaurant->rng, &customer->rng);
 
   customer->time_waiting = 0;
-  // TODO: make this random.
-  customer->patience = 10;
   customer->has_left = false;
   customer->wants_to_order = false;
 
   customer->dishes_served = 0;
   vec_init(&customer->order_dishes, sizeof(Dish));
-  // TODO: add dishes to customer.order.
+  int n_dishes = rng_next_range(&customer->rng, 1, 10);
+  int cook_time = 0;
+  for (int i = 0; i < n_dishes; i++) {
+    Dish* dish = vec_at(
+        restaurant->dishes,
+        rng_next_range(&customer->rng, 0, restaurant->dishes->length - 1));
+    cook_time += dish->cook_time;
+
+    Result result = vec_push(&customer->order_dishes, dish);
+    if (result != RESULT_OK) {
+      return result;
+    }
+  }
+
+  customer->patience =
+      rng_next_range(&customer->rng, cook_time + 1, cook_time + 100);
 
   pthread_mutex_init(&customer->mtx, nullptr);
   return thread_init(&customer->tid, customer_thread, customer);
