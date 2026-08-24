@@ -16,7 +16,7 @@ typedef struct Customer {
   Vec order_dishes;
   size_t dishes_served;
   int time_waiting;
-  int patience;
+  double patience;
   bool wants_to_order;
   bool has_left;
   Restaurant* restaurant;

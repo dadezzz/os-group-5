@@ -82,8 +82,9 @@ void rng_init_thread(RNGState* main_state, RNGState* thread_state) {
   jump(main_state);
 }
 
-// Returns the next random value in inclusive range [min, max] for the given state.
-uint64_t rng_next_range(RNGState* state, uint64_t min, uint64_t max){
+// Returns the next random value in inclusive range [min, max] for the given
+// state.
+uint64_t rng_next_range(RNGState* state, uint64_t min, uint64_t max) {
   if (min >= max) {
     return min;
   }

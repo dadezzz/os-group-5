@@ -9,6 +9,7 @@
 #include "lib/data/dishes/dishes.h"
 #include "lib/data/resources.h"
 #include "lib/result.h"
+#include "lib/rng.h"
 #include "lib/state/restaurant.h"
 #include "lib/timer.h"
 #include "lib/vec.h"
@@ -56,7 +57,7 @@ int main() {
   clock_gettime(CLOCK_MONOTONIC, &now);
   struct timespec next_status_at = now;
   struct timespec next_tick_at = now;
-  int next_customer_at = 0;
+  int next_customer_at = rng_next_range(&restaurant.rng, 0, 50);
   unsigned int spawned_customers = 0;
   while (result == RESULT_OK &&
          !restaurant_is_empty(&restaurant, config.total_customers)) {
@@ -71,6 +72,7 @@ int main() {
         result = RESULT_OK;
       } else if (result == RESULT_OK) {
         ++spawned_customers;
+        next_customer_at = rng_next_range(&restaurant.rng, 5, 50);
       }
     }
 
