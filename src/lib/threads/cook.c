@@ -52,19 +52,20 @@ static Result cook_thread(void* void_cook) {
         KitchenResource** kitchen_resource_ref = vec_at(&acquired_resources, i);
         KitchenResource* kitchen_resource = *kitchen_resource_ref;
 
-        double dirty_score = pow(2, kitchen_resource->dirtiness) *
+        double dirty_cost = pow(2, kitchen_resource->dirtiness) *
                              log2(1 + kitchen_resource->resource->clean_time);
-        double clean_score = kitchen_resource->resource->clean_time *
+        double clean_cost = kitchen_resource->resource->clean_time *
                              (selected_dish_ticket->dish->price /
-                              selected_dish_ticket->customer->patience);
-        fprintf(stderr, "clean: %f, dirty: %f\n", clean_score, dirty_score);
+                              (selected_dish_ticket->customer->patience - selected_dish_ticket->customer->time_waiting));
+        fprintf(stderr, "clean: %f, dirty: %f\n", clean_cost, dirty_cost);
 
-        if (clean_score > dirty_score) {
-          fprintf(stderr, "cook %lu choose to wash", cook->tid);
+        if (clean_cost < dirty_cost) {
+          fprintf(stderr, "cook %lu choose to wash\n", cook->tid);
           sink_wash(&cook->restaurant->sink, kitchen_resource);
         } else {
+          fprintf(stderr, "cook %lu choose to use dirty\n", cook->tid);
           pthread_mutex_lock(&cook->restaurant->mtx);
-          cook->restaurant->score -= dirty_score;
+          cook->restaurant->score -= dirty_cost;
           pthread_mutex_unlock(&cook->restaurant->mtx);
         }
       }
