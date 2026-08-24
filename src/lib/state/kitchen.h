@@ -13,7 +13,7 @@ typedef struct {
 } KitchenResource;
 
 typedef struct {
-  pthread_mutex_t resources_mtx;
+  pthread_mutex_t mtx;
   Vec resources;  // Vec<KitchenResource>
 } Kitchen;
 

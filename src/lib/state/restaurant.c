@@ -15,6 +15,7 @@
 #include "../vec.h"
 #include "dish-ticket.h"
 #include "kitchen.h"
+#include "sink.h"
 
 Result restaurant_init(Restaurant* restaurant,
                        Timer* timer,
@@ -31,18 +32,19 @@ Result restaurant_init(Restaurant* restaurant,
   restaurant->num_seats = num_seats;
   atomic_init(&restaurant->is_closing, false);
 
+  pthread_mutex_init(&restaurant->mtx, nullptr);
+
   result = kitchen_init(&restaurant->kitchen, resources);
   if (result != RESULT_OK) {
     return result;
   }
 
+  sink_init(&restaurant->sink, restaurant);
   rng_init_main(&restaurant->rng, rng_seed);
 
   vec_init(&restaurant->cooks, sizeof(Cook));
   vec_init(&restaurant->waiters, sizeof(Waiter));
   queue_init(&restaurant->customers, sizeof(Customer));
-
-  pthread_mutex_init(&restaurant->mtx, nullptr);
 
   return RESULT_OK;
 }
@@ -181,6 +183,7 @@ void restaurant_drop(Restaurant* restaurant) {
   }
   queue_drop(&restaurant->customers, nullptr);
 
-  pthread_mutex_destroy(&restaurant->mtx);
+  sink_drop(&restaurant->sink);
   kitchen_drop(&restaurant->kitchen);
+  pthread_mutex_destroy(&restaurant->mtx);
 }
