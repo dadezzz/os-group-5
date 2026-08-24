@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdio.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
@@ -65,6 +66,8 @@ Result cook_assign(Cook* cook, DishTicket* dish_ticket) {
   cook->queued_time += dish_ticket->dish->cook_time;
 
   pthread_mutex_unlock(&cook->mtx);
+  fprintf(stderr, "cook %lu received ticket\n", cook->tid);
+
   sem_post(&cook->sem);
 
   return RESULT_OK;
