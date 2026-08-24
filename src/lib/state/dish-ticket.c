@@ -1,6 +1,7 @@
 #include "dish-ticket.h"
 
 #include "../data/dishes/dishes.h"
+#include "../threads/customer.h"
 #include "../threads/waiter.h"
 
 void dish_ticket_init(DishTicket* dish_ticket,

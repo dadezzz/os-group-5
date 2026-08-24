@@ -1,44 +1,50 @@
 #include "customer.h"
 
+#include <math.h>
 #include <pthread.h>
+#include <stddef.h>
+#include <stdio.h>
 
 #include "../data/dishes/dishes.h"
 #include "../result.h"
 #include "../rng.h"
 #include "../state/restaurant.h"
 #include "../timer.h"
+#include "../vec.h"
 #include "wrapper.h"
-
-void order_init(Customer* customer) {
-  customer->dishes_served = 0;
-  vec_init(&customer->order_dishes, sizeof(Dish));
-}
-
-void order_drop(Vec* order_dishes) {
-  if (order_dishes == nullptr) {
-    return;
-  }
-
-  vec_drop(order_dishes, nullptr);
-}
 
 void customer_serve(Customer* customer) {
   pthread_mutex_lock(&customer->mtx);
 
   if (customer->has_left) {
+    pthread_mutex_unlock(&customer->mtx);
     return;
   }
 
   ++customer->dishes_served;
 
-  // TODO: if order.dishes_served == order.dishes.length then the customer can
-  // leave the restaurant.
-
   pthread_mutex_unlock(&customer->mtx);
+}
+
+static double customer_calculate_score(Customer* customer) {
+  double total_price = 0;
+  for (size_t i = 0; i < customer->order_dishes.length; ++i) {
+    Dish* dish = vec_at(&customer->order_dishes, i);
+    total_price += dish->price;
+  }
+
+  if (customer->order_dishes.length == customer->dishes_served) {
+    return total_price *
+           (1 - ((double)customer->time_to_serve / (double)customer->patience));
+  }
+
+  return total_price * log2(1 + ((double)customer->patience /
+                                 (double)(1 + customer->dishes_served)));
 }
 
 static Result customer_thread(void* void_customer) {
   Customer* customer = void_customer;
+  fprintf(stderr, "customer %lu started\n", customer->tid);
 
   // TODO: make this random.
   int ticks_to_wait = 5;
@@ -46,15 +52,40 @@ static Result customer_thread(void* void_customer) {
   pthread_mutex_lock(&customer->mtx);
   customer->wants_to_order = true;
   pthread_mutex_unlock(&customer->mtx);
+  fprintf(stderr, "customer %lu started waiting\n", customer->tid);
 
-  // TODO: loop each tick, waiting for patience to finish. Check it every time
-  // because waiters might modify it by entertaining the customer.
+  // Check patience every tick because waiters might modify it by entertaining
+  // the customer.
+  while (true) {
+    timer_wait(customer->restaurant->timer, 1);
+
+    pthread_mutex_lock(&customer->mtx);
+
+    ++customer->time_to_serve;
+    --customer->patience;
+    fprintf(stderr, "customer %lu patience: %d\n", customer->tid,
+            customer->patience);
+
+    if (customer->patience <= 0 ||
+        customer->order_dishes.length == customer->dishes_served) {
+      pthread_mutex_unlock(&customer->mtx);
+      break;
+    }
+
+    pthread_mutex_unlock(&customer->mtx);
+  }
 
   pthread_mutex_lock(&customer->mtx);
   customer->has_left = true;
   pthread_mutex_unlock(&customer->mtx);
 
-  // TODO: Update restaurant score.
+  double score = customer_calculate_score(customer);
+  pthread_mutex_lock(&customer->restaurant->mtx);
+  customer->restaurant->score += score;
+  fprintf(stderr, "new restaurant score: %f, delta: %f\n",
+          customer->restaurant->score, score);
+  pthread_mutex_unlock(&customer->restaurant->mtx);
+  fprintf(stderr, "customer %lu left\n", customer->tid);
 
   return RESULT_OK;
 }
@@ -63,10 +94,14 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
   customer->restaurant = restaurant;
   rng_init_thread(&restaurant->rng, &customer->rng);
 
+  customer->time_to_serve = 0;
+  // TODO: make this random.
+  customer->patience = 10;
   customer->has_left = false;
   customer->wants_to_order = false;
 
-  order_init(customer);
+  customer->dishes_served = 0;
+  vec_init(&customer->order_dishes, sizeof(Dish));
   // TODO: add dishes to customer.order.
 
   pthread_mutex_init(&customer->mtx, nullptr);
@@ -81,7 +116,7 @@ Result customer_drop(Customer* customer) {
   Result result = thread_drop(customer->tid);
 
   pthread_mutex_destroy(&customer->mtx);
-  order_drop(&customer->order_dishes);
+  vec_drop(&customer->order_dishes, nullptr);
 
   return result;
 }

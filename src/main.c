@@ -1,6 +1,7 @@
 #include <bits/time.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -74,6 +75,7 @@ int main() {
     }
 
     if (timespec_difference(now, next_tick_at) > 0) {
+      fprintf(stderr, "main tick\n");
       timer_tick(&timer);
       next_tick_at = now;
       // TODO: consider nanoseconds when 0 < gamespeed < 1.
