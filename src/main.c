@@ -76,7 +76,8 @@ int main() {
         result = RESULT_OK;
       } else if (result == RESULT_OK) {
         ++spawned_customers;
-        next_customer_at = rng_next_range(&restaurant.rng, 5, 50);
+        next_customer_at =
+            timer_get(&timer) + rng_next_range(&restaurant.rng, 5, 50);
       }
     }
 
@@ -95,11 +96,11 @@ int main() {
     }
 
     if (timespec_difference(now, next_tick_at) > 0) {
-      fprintf(stderr, "main tick\n");
+      // fprintf(stderr, "main tick\n");
       timer_tick(&timer);
       next_tick_at = now;
       // TODO: consider nanoseconds when 0 < gamespeed < 1.
-      next_tick_at.tv_nsec += (long)(1e9 * 0.10 * config.game_speed);
+      next_tick_at.tv_nsec += (long)(1e9 * 0.05 * config.game_speed);
       // next_tick_at.tv_sec += 1;
     }
 
