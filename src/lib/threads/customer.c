@@ -6,14 +6,15 @@
 #include "../rng.h"
 #include "../state/order.h"
 #include "../state/restaurant.h"
+#include "../timer.h"
 #include "wrapper.h"
 
 void customer_serve(Customer* customer) {
+  pthread_mutex_lock(&customer->mtx);
+
   if (customer->has_left) {
     return;
   }
-
-  pthread_mutex_lock(&customer->mtx);
 
   ++customer->order.dishes_served;
 
@@ -26,13 +27,22 @@ void customer_serve(Customer* customer) {
 static Result customer_thread(void* void_customer) {
   Customer* customer = void_customer;
 
-  // wait a random amount of time and then set wants_to_order to true.
+  // TODO: make this random.
+  int ticks_to_wait = 5;
+  timer_wait(customer->restaurant->timer, ticks_to_wait);
+  pthread_mutex_lock(&customer->mtx);
+  customer->wants_to_order = true;
+  pthread_mutex_unlock(&customer->mtx);
 
-  // TODO
+  // TODO: loop each tick, waiting for patience to finish. Check it every time
+  // because waiters might modify it by entertaining the customer.
 
-  // Update restaurant score.
-
+  pthread_mutex_lock(&customer->mtx);
   customer->has_left = true;
+  pthread_mutex_unlock(&customer->mtx);
+
+  // TODO: Update restaurant score.
+
   return RESULT_OK;
 }
 
@@ -40,10 +50,15 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
   customer->restaurant = restaurant;
   rng_init_thread(&restaurant->rng, &customer->rng);
 
+  customer->has_left = false;
   customer->wants_to_order = false;
+
+  // TODO: order is a bit rendundant and we can flatten the nested fields into
+  // customer.
   order_init(&customer->order, customer);
   // TODO: add dishes to customer.order.
 
+  pthread_mutex_init(&customer->mtx, nullptr);
   return thread_init(&customer->tid, customer_thread, customer);
 }
 
@@ -54,6 +69,7 @@ Result customer_drop(Customer* customer) {
 
   Result result = thread_drop(customer->tid);
 
+  pthread_mutex_destroy(&customer->mtx);
   order_drop(&customer->order);
 
   return result;

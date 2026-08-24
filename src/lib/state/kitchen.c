@@ -33,7 +33,13 @@ Result kitchen_get_resources(Kitchen* kitchen,
           kitchen_resource->available) {
         // Store a ref to the kitchen resource, so that we can modify its value
         // from inside acquired.
-        vec_push(acquired, &kitchen_resource);
+        result = vec_push(acquired, &kitchen_resource);
+        if (result != RESULT_OK) {
+          vec_drop(acquired, nullptr);
+          pthread_mutex_unlock(&kitchen->resources_mtx);
+          return result;
+        }
+
         available_count++;
       }
     }

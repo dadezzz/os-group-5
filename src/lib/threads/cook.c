@@ -27,7 +27,10 @@ static Result cook_thread(void* void_cook) {
 
       // cook plate
 
-      waiter_assign(dish_ticket->waiter, dish_ticket);
+      Result result = waiter_assign(dish_ticket->waiter, dish_ticket);
+      if (result != RESULT_OK) {
+        return result;
+      }
     } else if (restaurant_is_closing(cook->restaurant)) {
       // Terminate after having emptied the queue.
       pthread_mutex_unlock(&cook->mtx);

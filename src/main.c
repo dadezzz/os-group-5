@@ -13,7 +13,7 @@
 #include "lib/vec.h"
 
 static double timespec_difference(struct timespec a, struct timespec b) {
-  return (a.tv_sec - b.tv_sec) + (a.tv_nsec + b.tv_nsec) / 1e9;
+  return (a.tv_sec - b.tv_sec) + (a.tv_nsec - b.tv_nsec) / 1e9;
 }
 
 int main() {
@@ -39,8 +39,8 @@ int main() {
 
   Restaurant restaurant;
   if (result == RESULT_OK) {
-    restaurant_init(&restaurant, &timer, config.random_seed,
-                    config.max_customers, &resources, &dishes);
+    result = restaurant_init(&restaurant, &timer, config.random_seed,
+                             config.max_customers, &resources, &dishes);
   }
 
   if (result == RESULT_OK) {
@@ -57,8 +57,10 @@ int main() {
   struct timespec next_tick_at = now;
   int next_customer_at = 0;
   unsigned int spawned_customers = 0;
-  while (result == RESULT_OK && (spawned_customers < config.total_customers ||
-                                 !restaurant_is_empty(&restaurant))) {
+  while (result == RESULT_OK &&
+         !restaurant_is_empty(&restaurant, config.total_customers)) {
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
     if (timer_get(&timer) >= next_customer_at &&
         spawned_customers < config.total_customers) {
       result = restaurant_spawn_customer(&restaurant);
@@ -74,11 +76,13 @@ int main() {
     if (timespec_difference(now, next_tick_at) > 0) {
       timer_tick(&timer);
       next_tick_at = now;
-      next_tick_at.tv_nsec += (long)(1e9 * config.game_speed);
+      // TODO: consider nanoseconds when 0 < gamespeed < 1.
+      // next_tick_at.tv_nsec += (long)(1e9 * config.game_speed);
+      next_tick_at.tv_sec += 1;
     }
 
     if (timespec_difference(now, next_status_at) > 0) {
-      // Print status.
+      // TODO: Print status.
       // next_status_at = time_now + config.print_status_interval
     }
 

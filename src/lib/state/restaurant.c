@@ -3,7 +3,9 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdlib.h>
 
+#include "../fifo-queue.h"
 #include "../result.h"
 #include "../rng.h"
 #include "../threads/cook.h"
@@ -15,29 +17,35 @@
 #include "kitchen.h"
 #include "order.h"
 
-void restaurant_init(Restaurant* restaurant,
-                     Timer* timer,
-                     unsigned int rng_seed,
-                     unsigned int num_seats,
-                     Vec* resources,  // Vec<Resource>
-                     Vec* dishes      // Vec<Dish>
+Result restaurant_init(Restaurant* restaurant,
+                       Timer* timer,
+                       unsigned int rng_seed,
+                       unsigned int num_seats,
+                       Vec* resources,  // Vec<Resource>
+                       Vec* dishes      // Vec<Dish>
 ) {
+  Result result = RESULT_OK;
+
   restaurant->score = 0;
   restaurant->timer = timer;
   restaurant->dishes = dishes;
+  restaurant->num_seats = num_seats;
   atomic_init(&restaurant->is_closing, false);
-  kitchen_init(&restaurant->kitchen, resources);
+
+  result = kitchen_init(&restaurant->kitchen, resources);
+  if (result != RESULT_OK) {
+    return result;
+  }
 
   rng_init_main(&restaurant->rng, rng_seed);
 
   vec_init(&restaurant->cooks, sizeof(Cook));
   vec_init(&restaurant->waiters, sizeof(Waiter));
-  vec_init(&restaurant->customers, sizeof(Customer));
-
-  restaurant->num_seats = num_seats;
-  vec_reserve(&restaurant->customers, num_seats);
+  queue_init(&restaurant->customers, sizeof(Customer));
 
   pthread_mutex_init(&restaurant->mtx, nullptr);
+
+  return RESULT_OK;
 }
 
 Result restaurant_spawn_cooks(Restaurant* restaurant, size_t quantity) {
@@ -72,34 +80,44 @@ Result restaurant_spawn_waiters(Restaurant* restaurant, size_t quantity) {
 }
 
 Result restaurant_spawn_customer(Restaurant* restaurant) {
-  Customer* customer = nullptr;
-  Result result = RESULT_OK;
+  unsigned int occupied_seats = 0;
 
-  if (restaurant->customers.length == restaurant->num_seats) {
-    // Try to find a free place in the seats.
-    for (size_t i = 0; i < restaurant->customers.length; ++i) {
-      Customer* old_customer = vec_at(&restaurant->customers, i);
+  pthread_mutex_lock(&restaurant->mtx);
+  for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
+       node = node->next) {
+    Customer* old_customer = node->value;
 
-      if (old_customer->has_left) {
-        result = customer_drop(old_customer);
-        if (result != RESULT_OK) {
-          return result;
-        }
-
-        customer = old_customer;
-        break;
-      }
+    if (!old_customer->has_left) {
+      ++occupied_seats;
     }
-
-    if (customer == nullptr) {
-      return RESULT_RESTAURANT_FULL;
-    }
-  } else {
-    customer = vec_at(&restaurant->customers, restaurant->customers.length);
-    ++restaurant->customers.length;
   }
 
-  result = customer_init(customer, restaurant);
+  if (occupied_seats == restaurant->num_seats) {
+    pthread_mutex_unlock(&restaurant->mtx);
+    return RESULT_RESTAURANT_FULL;
+  }
+
+  Result result = RESULT_OK;
+
+  // Has to be pre-allocated because the customer passed to customer_init has
+  // to be in the same location as the one on the queue.
+  Customer* customer = malloc(sizeof(Customer));
+  if (customer == nullptr) {
+    result = RESULT_OUT_OF_MEMORY;
+  }
+
+  if (result == RESULT_OK) {
+    result = queue_push_allocated(&restaurant->customers, customer);
+  }
+  if (result != RESULT_OK) {
+    free(customer);
+  }
+
+  if (result == RESULT_OK) {
+    result = customer_init(customer, restaurant);
+  }
+
+  pthread_mutex_unlock(&restaurant->mtx);
   return result;
 }
 
@@ -107,15 +125,27 @@ bool restaurant_is_closing(Restaurant* restaurant) {
   return atomic_load(&restaurant->is_closing);
 }
 
-bool restaurant_is_empty(Restaurant* restaurant) {
-  for (size_t i = 0; i < restaurant->customers.length; ++i) {
-    Customer* customer = vec_at(&restaurant->customers, i);
+bool restaurant_is_empty(Restaurant* restaurant, unsigned int expected_people) {
+  unsigned int seated_people = 0;
+  bool present_people = false;
+
+  pthread_mutex_lock(&restaurant->mtx);
+
+  for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
+       node = node->next) {
+    Customer* customer = node->value;
+
+    ++seated_people;
+
+    pthread_mutex_lock(&customer->mtx);
     if (!customer->has_left) {
-      return false;
+      present_people = true;
     }
+    pthread_mutex_unlock(&customer->mtx);
   }
 
-  return true;
+  pthread_mutex_unlock(&restaurant->mtx);
+  return seated_people == expected_people && !present_people;
 }
 
 void restaurant_drop(Restaurant* restaurant) {
@@ -141,15 +171,16 @@ void restaurant_drop(Restaurant* restaurant) {
   }
   vec_drop(&restaurant->waiters, nullptr);
 
-  for (size_t i = 0; i < restaurant->customers.length; ++i) {
-    Result local_result = customer_drop(vec_at(&restaurant->customers, i));
+  for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
+       node = node->next) {
+    Result local_result = customer_drop(node->value);
 
     // Don't overwrite previous failures;
     if (result == RESULT_OK) {
       result = local_result;
     }
   }
-  vec_drop(&restaurant->customers, nullptr);
+  queue_drop(&restaurant->customers, nullptr);
 
   pthread_mutex_destroy(&restaurant->mtx);
   kitchen_drop(&restaurant->kitchen);

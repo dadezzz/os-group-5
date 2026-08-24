@@ -72,7 +72,7 @@ void* queue_pop(FIFOQueue* queue) {
   void* value = node->value;
 
   // If we popped the last item set tail to null.
-  if (node == queue->tail) {
+  if (queue_is_empty(queue)) {
     queue->tail = nullptr;
   }
 
