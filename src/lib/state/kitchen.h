@@ -14,7 +14,7 @@ typedef struct {
 
 typedef struct {
   pthread_mutex_t resources_mtx;
-  Vec* resources;  // Vec<KitchenResource>
+  Vec resources;  // Vec<KitchenResource>
 } Kitchen;
 
 Result kitchen_get_resources(Kitchen* kitchen,
