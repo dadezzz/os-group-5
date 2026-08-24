@@ -49,7 +49,7 @@ static Result customer_thread(void* void_customer) {
   pthread_mutex_lock(&customer->mtx);
   customer->wants_to_order = true;
   pthread_mutex_unlock(&customer->mtx);
-  fprintf(stderr, "customer %lu started waiting\n", customer->tid);
+  fprintf(stderr, "customer %lu wants to order\n", customer->tid);
 
   // Check patience every tick because waiters might modify it by entertaining
   // the customer.
@@ -59,8 +59,6 @@ static Result customer_thread(void* void_customer) {
     pthread_mutex_lock(&customer->mtx);
 
     ++customer->time_waiting;
-    fprintf(stderr, "customer %lu time_waiting: %d\n", customer->tid,
-            customer->time_waiting);
 
     if (customer->time_waiting > customer->patience ||
         customer->order_dishes.length == customer->dishes_served) {

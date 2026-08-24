@@ -20,7 +20,7 @@
 #include "customer.h"
 #include "wrapper.h"
 
-static const double ENTERTAIN_PROBABILITY = 0.6;
+static const double ENTERTAIN_PROBABILITY = 0.02;
 
 static void entertain_customers(Waiter* waiter) {
   Customer* customer_to_entertain = nullptr;
@@ -55,53 +55,63 @@ static void entertain_customers(Waiter* waiter) {
 }
 
 static Result waiter_take_order(Waiter* waiter, Customer* customer) {
-  Result result = RESULT_OK;
   pthread_mutex_lock(&customer->mtx);
-
-  if (!customer->has_left && customer->wants_to_order) {
-    double total_price = customer_order_total_price(customer);
-
-    fprintf(stderr, "waiter %lu is taking order\n", waiter->tid);
-
-    for (size_t i = 0; i < customer->order_dishes.length; ++i) {
-      Dish* dish = vec_at(&customer->order_dishes, i);
-
-      DishTicket dish_ticket;
-      dish_ticket.dish = dish;
-      dish_ticket.customer = customer;
-      dish_ticket.waiter = waiter;
-
-      double customer_time_left = customer->patience - customer->time_waiting;
-      double dish_weight = total_price / customer_time_left;
-
-      Cook* min_cook = nullptr;
-      double min_cook_score = DBL_MAX;
-      for (size_t c = 0; c < waiter->restaurant->cooks.length; ++c) {
-        Cook* cook = vec_at(&waiter->restaurant->cooks, c);
-
-        double customer_out_of_patience_penalty =
-            3 * fmax(0, cook->queued_time - customer_time_left);
-        double cook_score =
-            (dish_weight * (cook->queued_time + dish->cook_time)) +
-            customer_out_of_patience_penalty;
-
-        if (cook_score < min_cook_score) {
-          min_cook = cook;
-          min_cook_score = cook_score;
-        }
-      }
-
-      // Just to handle the case where there are 0 cooks.
-      if (min_cook != nullptr) {
-        result = cook_assign(min_cook, &dish_ticket);
-      }
-    }
-  } else {
-    result = RESULT_CUSTOMER_NO_ORDER;
+  if (customer->has_left || !customer->wants_to_order) {
+    pthread_mutex_unlock(&customer->mtx);
+    return RESULT_CUSTOMER_NO_ORDER;
   }
 
   customer->wants_to_order = false;
   pthread_mutex_unlock(&customer->mtx);
+
+  Result result = RESULT_OK;
+
+  double total_price = customer_order_total_price(customer);
+
+  fprintf(stderr, "waiter %lu is taking order\n", waiter->tid);
+
+  for (size_t i = 0; i < customer->order_dishes.length; ++i) {
+    Dish* dish = vec_at(&customer->order_dishes, i);
+
+    DishTicket dish_ticket;
+    dish_ticket.dish = dish;
+    dish_ticket.customer = customer;
+    dish_ticket.waiter = waiter;
+
+    pthread_mutex_lock(&customer->mtx);
+    double dish_weight = total_price / customer->patience;
+    double customer_time_left = customer->patience - customer->time_waiting;
+    pthread_mutex_unlock(&customer->mtx);
+
+    Cook* min_cook = nullptr;
+    double min_cook_score = DBL_MAX;
+
+    for (size_t c = 0; c < waiter->restaurant->cooks.length; ++c) {
+      Cook* cook = vec_at(&waiter->restaurant->cooks, c);
+
+      pthread_mutex_lock(&cook->mtx);
+      double customer_out_of_patience_penalty =
+          3 * fmax(0, cook->queued_time - customer_time_left);
+      double cook_score =
+          (dish_weight * (cook->queued_time + dish->cook_time)) +
+          customer_out_of_patience_penalty;
+      pthread_mutex_unlock(&cook->mtx);
+
+      if (cook_score < min_cook_score) {
+        min_cook = cook;
+        min_cook_score = cook_score;
+      }
+    }
+
+    // Just to handle the case where there are 0 cooks.
+    if (min_cook != nullptr) {
+      Result local_result = cook_assign(min_cook, &dish_ticket);
+      if (local_result != RESULT_OK) {
+        result = local_result;
+      }
+    }
+  }
+
   return result;
 }
 

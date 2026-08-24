@@ -14,4 +14,4 @@ if [ ! $(ps -A -o uid,pid | grep -E "^\s$(id -u)\s$PID" ) ] ; then
   exit 1
 fi
 
-pkill -USR1 "$PID"
+kill -USR1 "$PID"
