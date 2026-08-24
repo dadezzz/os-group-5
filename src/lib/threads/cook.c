@@ -3,6 +3,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -20,6 +21,11 @@ static Result cook_thread(void* void_cook) {
 
   while (true) {
     sem_wait(&cook->sem);
+
+    if (restaurant_is_closing(cook->restaurant)) {
+      // Terminate after having emptied the queue.
+      break;
+    }
 
     pthread_mutex_lock(&cook->mtx);
 
@@ -54,17 +60,26 @@ static Result cook_thread(void* void_cook) {
 
         double dirty_cost = pow(2, kitchen_resource->dirtiness) *
                             log2(1 + kitchen_resource->resource->clean_time);
-        double clean_cost = kitchen_resource->resource->clean_time *
-                            (selected_dish_ticket->dish->price /
-                             (selected_dish_ticket->customer->patience -
-                              selected_dish_ticket->customer->time_waiting));
-        fprintf(stderr, "clean: %f, dirty: %f\n", clean_cost, dirty_cost);
+
+        pthread_mutex_lock(&selected_dish_ticket->customer->mtx);
+        int waiting = atomic_load(&cook->restaurant->sink.waiting);
+        double clean_cost =
+            kitchen_resource->resource->clean_time * waiting *
+            selected_dish_ticket->dish->price /
+            fmax(selected_dish_ticket->customer->patience -
+                     selected_dish_ticket->customer->time_waiting,
+                 1.0);
+        pthread_mutex_unlock(&selected_dish_ticket->customer->mtx);
+
+        atomic_store(&cook->is_waiting_timer, true);
 
         if (clean_cost < dirty_cost) {
-          fprintf(stderr, "cook %lu choose to wash\n", cook->tid);
+          fprintf(stderr, "cook %lu choose to wash, waiting: %d\n", cook->tid,
+                  waiting);
           sink_wash(&cook->restaurant->sink, kitchen_resource);
         } else {
-          fprintf(stderr, "cook %lu choose to use dirty\n", cook->tid);
+          fprintf(stderr, "cook %lu choose to use dirty, delta: %f\n",
+                  cook->tid, -1 * dirty_cost);
           pthread_mutex_lock(&cook->restaurant->mtx);
           cook->restaurant->score -= dirty_cost;
           pthread_mutex_unlock(&cook->restaurant->mtx);
@@ -78,22 +93,18 @@ static Result cook_thread(void* void_cook) {
       fprintf(stderr, "cook %lu cooked the %s\n", cook->tid,
               selected_dish_ticket->dish->name);
 
+      atomic_store(&cook->is_waiting_timer, false);
+
       Result result =
           waiter_assign(selected_dish_ticket->waiter, selected_dish_ticket);
       if (result != RESULT_OK) {
         return result;
       }
+    } else {
+      // Re-queue the dish tickets again.
+      pthread_mutex_unlock(&cook->mtx);
 
-      continue;
-    }
-
-    // Re-queue the dish tickets again.
-    sem_post(&cook->sem);
-    pthread_mutex_unlock(&cook->mtx);
-
-    if (restaurant_is_closing(cook->restaurant)) {
-      // Terminate after having emptied the queue.
-      break;
+      sem_post(&cook->sem);
     }
   }
 
@@ -102,6 +113,7 @@ static Result cook_thread(void* void_cook) {
 
 Result cook_init(Cook* cook, Restaurant* restaurant) {
   cook->restaurant = restaurant;
+  atomic_init(&cook->is_waiting_timer, false);
   rng_init_thread(&restaurant->rng, &cook->rng);
   cook->queued_time = 0;
   queue_init(&cook->dish_tickets, sizeof(DishTicket));
@@ -122,8 +134,6 @@ Result cook_assign(Cook* cook, DishTicket* dish_ticket) {
   cook->queued_time += dish_ticket->dish->cook_time;
 
   pthread_mutex_unlock(&cook->mtx);
-  fprintf(stderr, "cook %lu received ticket\n", cook->tid);
-
   sem_post(&cook->sem);
 
   return RESULT_OK;
@@ -136,6 +146,11 @@ Result cook_drop(Cook* cook) {
 
   // Wake up the cook so that it checks restaurant_is_closing.
   sem_post(&cook->sem);
+
+  // Wait for the cook to finish wathever they are doing.
+  while (atomic_load(&cook->is_waiting_timer)) {
+    timer_tick(cook->restaurant->timer);
+  }
 
   Result result = thread_drop(cook->tid);
 

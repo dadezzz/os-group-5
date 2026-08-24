@@ -29,15 +29,21 @@ void customer_serve(Customer* customer) {
 static double customer_order_calculate_score(Customer* customer) {
   double total_price = customer_order_total_price(customer);
 
+  double score;
+
   if (customer->order_dishes.length == customer->dishes_served) {
-    fprintf(stderr, "customer %lu left with complete order\n", customer->tid);
-    return total_price * (1 - (customer->time_waiting / customer->patience));
+    score = total_price * (1 - (customer->time_waiting / customer->patience));
+    fprintf(stderr, "customer %lu left with complete order, delta: %f\n",
+            customer->tid, score);
+  } else {
+    score = -1 * total_price *
+            log2(1 + (customer->patience / (1 + customer->dishes_served)));
+    fprintf(stderr,
+            "customer %lu sadly left with incomplete order, delta: %f\n",
+            customer->tid, score);
   }
 
-  fprintf(stderr, "customer %lu sadly left with incomplete order\n",
-          customer->tid);
-  return -1 * total_price *
-         log2(1 + (customer->patience / (1 + customer->dishes_served)));
+  return score;
 }
 
 static Result customer_thread(void* void_customer) {
@@ -76,10 +82,7 @@ static Result customer_thread(void* void_customer) {
 
   pthread_mutex_lock(&customer->restaurant->mtx);
   customer->restaurant->score += score;
-  fprintf(stderr, "new restaurant score: %f, delta: %f\n",
-          customer->restaurant->score, score);
   pthread_mutex_unlock(&customer->restaurant->mtx);
-  fprintf(stderr, "customer %lu left\n", customer->tid);
 
   return RESULT_OK;
 }

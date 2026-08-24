@@ -18,6 +18,8 @@ LDFLAGS  +=
 # Add debug symbols and sanitizations to detect leaks and undefined behaviour.
 build-debug: CFLAGS += -g -fsanitize=address -fsanitize=undefined
 build-debug: LDFLAGS += -fsanitize=address -fsanitize=undefined
+# build-debug: CFLAGS += -g -fsanitize=thread -fsanitize=undefined
+# build-debug: LDFLAGS += -fsanitize=thread -fsanitize=undefined
 build-debug: build/restaurant
 # Generate compile commands (for IDE autocomplete) only if Clang is used. GCC
 # doesn't support it.
