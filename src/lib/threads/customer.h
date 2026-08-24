@@ -15,14 +15,12 @@ typedef struct Customer {
   sem_t* seats;
   Vec order_dishes;
   size_t dishes_served;
+  int time_to_serve;
+  int patience;
   bool wants_to_order;
   bool has_left;
   Restaurant* restaurant;
 } Customer;
-
-void order_init(Customer* customer);
-
-void order_drop(Vec* order_dishes);
 
 void customer_serve(Customer* customer);
 

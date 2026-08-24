@@ -54,7 +54,7 @@ static Result waiter_thread(void* void_waiter) {
         //   customer->wants_to_order = false;
         // }
 
-        // pthread_mutex_unlock(&customer->mtx);
+        pthread_mutex_unlock(&customer->mtx);
 
         // if (result != RESULT_OK) {
         //   pthread_mutex_unlock(&waiter->restaurant->mtx);
