@@ -2,12 +2,25 @@
 
 #include <pthread.h>
 
+#include "../data/dishes/dishes.h"
 #include "../result.h"
 #include "../rng.h"
-#include "../state/order.h"
 #include "../state/restaurant.h"
 #include "../timer.h"
 #include "wrapper.h"
+
+void order_init(Customer* customer) {
+  customer->dishes_served = 0;
+  vec_init(&customer->order_dishes, sizeof(Dish));
+}
+
+void order_drop(Vec* order_dishes) {
+  if (order_dishes == nullptr) {
+    return;
+  }
+
+  vec_drop(order_dishes, nullptr);
+}
 
 void customer_serve(Customer* customer) {
   pthread_mutex_lock(&customer->mtx);
@@ -16,7 +29,7 @@ void customer_serve(Customer* customer) {
     return;
   }
 
-  ++customer->order.dishes_served;
+  ++customer->dishes_served;
 
   // TODO: if order.dishes_served == order.dishes.length then the customer can
   // leave the restaurant.
@@ -53,9 +66,7 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
   customer->has_left = false;
   customer->wants_to_order = false;
 
-  // TODO: order is a bit rendundant and we can flatten the nested fields into
-  // customer.
-  order_init(&customer->order, customer);
+  order_init(customer);
   // TODO: add dishes to customer.order.
 
   pthread_mutex_init(&customer->mtx, nullptr);
@@ -70,7 +81,7 @@ Result customer_drop(Customer* customer) {
   Result result = thread_drop(customer->tid);
 
   pthread_mutex_destroy(&customer->mtx);
-  order_drop(&customer->order);
+  order_drop(&customer->order_dishes);
 
   return result;
 }

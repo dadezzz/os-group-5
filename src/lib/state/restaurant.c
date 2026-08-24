@@ -15,7 +15,6 @@
 #include "../vec.h"
 #include "dish-ticket.h"
 #include "kitchen.h"
-#include "order.h"
 
 Result restaurant_init(Restaurant* restaurant,
                        Timer* timer,

@@ -24,7 +24,7 @@ static Result waiter_thread(void* void_waiter) {
 
       if (dish_ticket != nullptr) {
         pthread_mutex_unlock(&waiter->mtx);
-        customer_serve(dish_ticket->order->customer);
+        customer_serve(dish_ticket->customer);
         free(dish_ticket);
         // Check again the semaphore without waiting for one tick to pass.
         continue;
