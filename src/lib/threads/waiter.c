@@ -16,32 +16,34 @@
 
 const double ENTERTAIN_PROBABILITY = 0.6;
 
-static void entertain_customers(Waiter* waiter){
+static void entertain_customers(Waiter* waiter) {
   Customer* customer_to_entertain = nullptr;
   for (FIFOQueueNode* node = waiter->restaurant->customers.head;
        node != nullptr; node = node->next) {
     Customer* customer = node->value;
     pthread_mutex_lock(&customer->mtx);
 
-    if(customer_to_entertain == nullptr){
+    if (customer_to_entertain == nullptr) {
       customer_to_entertain = customer;
     }
 
-    if(customer->patience - customer->time_waiting < customer_to_entertain->patience - customer_to_entertain->time_waiting){
+    if (customer->patience - customer->time_waiting <
+        customer_to_entertain->patience - customer_to_entertain->time_waiting) {
       customer_to_entertain = customer;
     }
 
     pthread_mutex_unlock(&customer->mtx);
   }
 
-  if(customer_to_entertain == nullptr){
+  if (customer_to_entertain == nullptr) {
     return;
   }
 
   pthread_mutex_lock(&customer_to_entertain->mtx);
 
   customer_to_entertain->patience +=
-      customer_to_entertain->patience * (rng_next_range(&waiter->rng, 2, 10) / 100.0);
+      customer_to_entertain->patience *
+      (rng_next_range(&waiter->rng, 2, 10) / 100.0);
 
   pthread_mutex_unlock(&customer_to_entertain->mtx);
 }
