@@ -12,6 +12,7 @@
 #include "../timer.h"
 #include "../vec.h"
 #include "kitchen.h"
+#include "sink.h"
 
 typedef struct Restaurant {
   double score;
@@ -27,6 +28,7 @@ typedef struct Restaurant {
   atomic_bool is_closing;
   Vec* dishes;
   Kitchen kitchen;
+  Sink sink;
 } Restaurant;
 
 Result restaurant_init(Restaurant* restaurant,
