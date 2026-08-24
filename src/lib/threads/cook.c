@@ -11,8 +11,11 @@
 #include "../result.h"
 #include "../rng.h"
 #include "../state/dish-ticket.h"
+#include "../state/kitchen.h"
 #include "../state/restaurant.h"
+#include "../state/sink.h"
 #include "../timer.h"
+#include "../vec.h"
 #include "waiter.h"
 #include "wrapper.h"
 
