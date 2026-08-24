@@ -26,20 +26,15 @@ void customer_serve(Customer* customer) {
   pthread_mutex_unlock(&customer->mtx);
 }
 
-static double customer_calculate_score(Customer* customer) {
-  double total_price = 0;
-  for (size_t i = 0; i < customer->order_dishes.length; ++i) {
-    Dish* dish = vec_at(&customer->order_dishes, i);
-    total_price += dish->price;
-  }
+static double customer_order_calculate_score(Customer* customer) {
+  double total_price = customer_order_total_price(customer);
 
   if (customer->order_dishes.length == customer->dishes_served) {
-    return total_price *
-           (1 - ((double)customer->time_to_serve / (double)customer->patience));
+    return total_price * (1 - (customer->time_waiting / customer->patience));
   }
 
-  return total_price * log2(1 + ((double)customer->patience /
-                                 (double)(1 + customer->dishes_served)));
+  return -1 * total_price *
+         log2(1 + (customer->patience / (1 + customer->dishes_served)));
 }
 
 static Result customer_thread(void* void_customer) {
@@ -61,12 +56,11 @@ static Result customer_thread(void* void_customer) {
 
     pthread_mutex_lock(&customer->mtx);
 
-    ++customer->time_to_serve;
-    --customer->patience;
-    fprintf(stderr, "customer %lu patience: %d\n", customer->tid,
-            customer->patience);
+    ++customer->time_waiting;
+    fprintf(stderr, "customer %lu time_waiting: %d\n", customer->tid,
+            customer->time_waiting);
 
-    if (customer->patience <= 0 ||
+    if (customer->time_waiting > customer->patience ||
         customer->order_dishes.length == customer->dishes_served) {
       pthread_mutex_unlock(&customer->mtx);
       break;
@@ -79,7 +73,7 @@ static Result customer_thread(void* void_customer) {
   customer->has_left = true;
   pthread_mutex_unlock(&customer->mtx);
 
-  double score = customer_calculate_score(customer);
+  double score = customer_order_calculate_score(customer);
   pthread_mutex_lock(&customer->restaurant->mtx);
   customer->restaurant->score += score;
   fprintf(stderr, "new restaurant score: %f, delta: %f\n",
@@ -94,7 +88,7 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
   customer->restaurant = restaurant;
   rng_init_thread(&restaurant->rng, &customer->rng);
 
-  customer->time_to_serve = 0;
+  customer->time_waiting = 0;
   // TODO: make this random.
   customer->patience = 10;
   customer->has_left = false;
@@ -106,6 +100,17 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
 
   pthread_mutex_init(&customer->mtx, nullptr);
   return thread_init(&customer->tid, customer_thread, customer);
+}
+
+int customer_order_total_price(Customer* customer) {
+  int acc = 0;
+
+  for (size_t i = 0; i < customer->order_dishes.length; ++i) {
+    Dish* dish = vec_at(&customer->order_dishes, i);
+    acc += dish->price;
+  }
+
+  return acc;
 }
 
 Result customer_drop(Customer* customer) {
