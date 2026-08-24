@@ -71,14 +71,14 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
       dish_ticket.customer = customer;
       dish_ticket.waiter = waiter;
 
-      double dish_weight = total_price / dish->price;
+      double customer_time_left = customer->patience - customer->time_waiting;
+      double dish_weight = total_price / customer_time_left;
 
       Cook* min_cook = nullptr;
       double min_cook_score = DBL_MAX;
       for (size_t c = 0; c < waiter->restaurant->cooks.length; ++c) {
         Cook* cook = vec_at(&waiter->restaurant->cooks, c);
 
-        double customer_time_left = customer->patience - customer->time_waiting;
         double customer_out_of_patience_penalty =
             3 * fmax(0, cook->queued_time - customer_time_left);
         double cook_score =
