@@ -93,8 +93,8 @@ Result waiter_init(Waiter* waiter, Restaurant* restaurant) {
 Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket) {
   pthread_mutex_lock(&waiter->mtx);
 
-  // Assumes that dish_ticket was allocated from the cook's task_q and reuses the
-  // memory.
+  // Assumes that dish_ticket was allocated from the cook's task_q and reuses
+  // the memory.
   Result result =
       queue_push_allocated(&waiter->ready_dish_tickets, dish_ticket);
   if (result != RESULT_OK) {
