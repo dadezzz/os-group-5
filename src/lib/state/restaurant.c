@@ -39,8 +39,7 @@ Result restaurant_init(Restaurant* restaurant,
     return result;
   }
 
-  sink_init(&restaurant->sink, timer);
-
+  sink_init(&restaurant->sink, restaurant);
   rng_init_main(&restaurant->rng, rng_seed);
 
   vec_init(&restaurant->cooks, sizeof(Cook));
