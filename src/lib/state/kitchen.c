@@ -18,7 +18,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
   bool all_available = true;
   Result result = RESULT_OK;
 
-  pthread_mutex_lock(&kitchen->resources_mtx);
+  pthread_mutex_lock(&kitchen->mtx);
 
   for (size_t r = 0; r < requirements->length; ++r) {
     Requirement* requirement = vec_at(requirements, r);
@@ -36,7 +36,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
         result = vec_push(acquired, &kitchen_resource);
         if (result != RESULT_OK) {
           vec_drop(acquired, nullptr);
-          pthread_mutex_unlock(&kitchen->resources_mtx);
+          pthread_mutex_unlock(&kitchen->mtx);
           return result;
         }
 
@@ -62,7 +62,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
     }
   }
 
-  pthread_mutex_unlock(&kitchen->resources_mtx);
+  pthread_mutex_unlock(&kitchen->mtx);
 
   return result;
 }
@@ -70,7 +70,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
 void kitchen_drop_resources(Kitchen* kitchen,
                             Vec* acquired  // Vec<KitcherResource*>
 ) {
-  pthread_mutex_lock(&kitchen->resources_mtx);
+  pthread_mutex_lock(&kitchen->mtx);
 
   for (size_t i = 0; i < acquired->length; i++) {
     KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
@@ -79,14 +79,14 @@ void kitchen_drop_resources(Kitchen* kitchen,
     kitchen_resource->dirtiness++;
   }
 
-  pthread_mutex_unlock(&kitchen->resources_mtx);
+  pthread_mutex_unlock(&kitchen->mtx);
 
   vec_drop(acquired, nullptr);
 }
 
 Result kitchen_init(Kitchen* kitchen, Vec* resources  // Vec<Resource>
 ) {
-  pthread_mutex_init(&kitchen->resources_mtx, nullptr);
+  pthread_mutex_init(&kitchen->mtx, nullptr);
   vec_init(&kitchen->resources, sizeof(KitchenResource));
 
   for (size_t i = 0; i < resources->length; i++) {
@@ -114,6 +114,6 @@ void kitchen_drop(Kitchen* kitchen) {
     return;
   }
 
-  pthread_mutex_destroy(&kitchen->resources_mtx);
+  pthread_mutex_destroy(&kitchen->mtx);
   vec_drop(&kitchen->resources, nullptr);
 }

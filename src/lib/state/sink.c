@@ -2,14 +2,27 @@
 
 #include <pthread.h>
 
+#include "restaurant.h"
+
 void sink_wash(Sink* sink, KitchenResource* resource) {
   pthread_mutex_lock(&sink->mtx);
-  timer_wait(sink->timer, resource->resource->clean_time);
+
+  pthread_mutex_lock(&sink->restaurant->kitchen.mtx);
+  resource->available = false;
+  pthread_mutex_unlock(&sink->restaurant->kitchen.mtx);
+
+  timer_wait(sink->restaurant->timer, resource->resource->clean_time);
+
+  pthread_mutex_lock(&sink->restaurant->kitchen.mtx);
+  resource->available = true;
+  resource->dirtiness = 0;
+  pthread_mutex_unlock(&sink->restaurant->kitchen.mtx);
+
   pthread_mutex_unlock(&sink->mtx);
 }
 
-void sink_init(Sink* sink, Timer* timer) {
-  sink->timer = timer;
+void sink_init(Sink* sink, Restaurant* restaurant) {
+  sink->restaurant = restaurant;
   pthread_mutex_init(&sink->mtx, nullptr);
 }
 
