@@ -35,6 +35,7 @@ static Result cook_thread(void* void_cook) {
                                             &dish_ticket->dish->requirements,
                                             &acquired_resources);
       if (result == RESULT_OK) {
+        queue_remove_at(&cook->dish_tickets, node);
         break;
       }
     }

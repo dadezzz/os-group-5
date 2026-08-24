@@ -22,6 +22,8 @@ void queue_init(FIFOQueue* queue, size_t value_size);
 
 bool queue_is_empty(FIFOQueue* queue);
 
+void* queue_remove_at(FIFOQueue* queue, FIFOQueueNode* node);
+
 Result queue_push(FIFOQueue* queue, const void* value);
 
 Result queue_push_allocated(FIFOQueue* queue, void* value);
