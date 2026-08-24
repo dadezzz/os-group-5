@@ -53,10 +53,11 @@ static Result cook_thread(void* void_cook) {
         KitchenResource* kitchen_resource = *kitchen_resource_ref;
 
         double dirty_cost = pow(2, kitchen_resource->dirtiness) *
-                             log2(1 + kitchen_resource->resource->clean_time);
+                            log2(1 + kitchen_resource->resource->clean_time);
         double clean_cost = kitchen_resource->resource->clean_time *
-                             (selected_dish_ticket->dish->price /
-                              (selected_dish_ticket->customer->patience - selected_dish_ticket->customer->time_waiting));
+                            (selected_dish_ticket->dish->price /
+                             (selected_dish_ticket->customer->patience -
+                              selected_dish_ticket->customer->time_waiting));
         fprintf(stderr, "clean: %f, dirty: %f\n", clean_cost, dirty_cost);
 
         if (clean_cost < dirty_cost) {
