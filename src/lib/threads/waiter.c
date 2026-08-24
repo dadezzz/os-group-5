@@ -20,7 +20,7 @@
 #include "customer.h"
 #include "wrapper.h"
 
-const double ENTERTAIN_PROBABILITY = 0.6;
+static const double ENTERTAIN_PROBABILITY = 0.6;
 
 static void entertain_customers(Waiter* waiter) {
   Customer* customer_to_entertain = nullptr;

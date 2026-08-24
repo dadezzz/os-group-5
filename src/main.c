@@ -1,4 +1,3 @@
-#include <bits/time.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,6 +9,7 @@
 #include "lib/data/resources.h"
 #include "lib/result.h"
 #include "lib/rng.h"
+#include "lib/sigusr1.h"
 #include "lib/state/restaurant.h"
 #include "lib/timer.h"
 #include "lib/vec.h"
@@ -46,6 +46,10 @@ int main() {
   }
 
   if (result == RESULT_OK) {
+    result = sigusr1_register_handler();
+  }
+
+  if (result == RESULT_OK) {
     result = restaurant_spawn_cooks(&restaurant, config.num_cooks);
   }
 
@@ -76,6 +80,20 @@ int main() {
       }
     }
 
+    if (sigusr1_get_raised()) {
+      fprintf(stderr, "handling sigusr1 signal");
+
+      // TODO: dump restaurant status.
+
+      // Set to false to avoid checking again on next loop.
+      sigusr1_set_raised(false);
+    }
+
+    if (timespec_difference(now, next_status_at) > 0) {
+      // TODO: Print status.
+      // next_status_at = time_now + config.print_status_interval
+    }
+
     if (timespec_difference(now, next_tick_at) > 0) {
       fprintf(stderr, "main tick\n");
       timer_tick(&timer);
@@ -83,11 +101,6 @@ int main() {
       // TODO: consider nanoseconds when 0 < gamespeed < 1.
       next_tick_at.tv_nsec += (long)(1e9 * 0.25 * config.game_speed);
       // next_tick_at.tv_sec += 1;
-    }
-
-    if (timespec_difference(now, next_status_at) > 0) {
-      // TODO: Print status.
-      // next_status_at = time_now + config.print_status_interval
     }
 
     usleep(1000);
