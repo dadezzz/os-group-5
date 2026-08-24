@@ -73,9 +73,9 @@ static Result customer_thread(void* void_customer) {
 
   pthread_mutex_lock(&customer->mtx);
   customer->has_left = true;
+  double score = customer_order_calculate_score(customer);
   pthread_mutex_unlock(&customer->mtx);
 
-  double score = customer_order_calculate_score(customer);
   pthread_mutex_lock(&customer->restaurant->mtx);
   customer->restaurant->score += score;
   fprintf(stderr, "new restaurant score: %f, delta: %f\n",
