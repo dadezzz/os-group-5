@@ -15,6 +15,40 @@ bool queue_is_empty(FIFOQueue* queue) {
   return queue->head == nullptr;
 }
 
+void* queue_remove_at(FIFOQueue* queue, FIFOQueueNode* node) {
+  if (queue_is_empty(queue)) {
+    return nullptr;
+  }
+
+  FIFOQueueNode* parent = nullptr;
+  FIFOQueueNode* current = queue->head;
+  while (current != nullptr && current != node) {
+    parent = current;
+    current = current->next;
+  }
+
+  // Didn't find node in the list.
+  if (current == nullptr) {
+    return nullptr;
+  }
+
+  if (parent != nullptr) {
+    parent->next = current->next;
+  } else {
+    queue->head = current->next;
+  }
+
+  void* value = current->value;
+  free(current);
+
+  // Update queue tail.
+  if (queue->tail == current) {
+    queue->tail = parent;
+  }
+
+  return value;
+}
+
 Result queue_push(FIFOQueue* queue, const void* value) {
   FIFOQueueNode* new_node = malloc(sizeof(FIFOQueueNode));
   if (new_node == nullptr) {
