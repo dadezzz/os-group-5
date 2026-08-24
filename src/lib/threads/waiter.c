@@ -20,36 +20,40 @@
 #include "customer.h"
 #include "wrapper.h"
 
-static const double ENTERTAIN_PROBABILITY = 0.02;
+static const double ENTERTAIN_PROBABILITY = 0.05;
 
 static void entertain_customers(Waiter* waiter) {
   Customer* customer_to_entertain = nullptr;
+
   for (FIFOQueueNode* node = waiter->restaurant->customers.head;
        node != nullptr; node = node->next) {
     Customer* customer = node->value;
+
     pthread_mutex_lock(&customer->mtx);
 
     if (customer_to_entertain == nullptr) {
       customer_to_entertain = customer;
+      break;
     }
 
     if (customer->patience - customer->time_waiting <
         customer_to_entertain->patience - customer_to_entertain->time_waiting) {
       customer_to_entertain = customer;
+      break;
     }
 
+    // The lock of customer_to_entertain_is released at the end.
     pthread_mutex_unlock(&customer->mtx);
   }
 
+  // Queue was empty.
   if (customer_to_entertain == nullptr) {
     return;
   }
 
-  pthread_mutex_lock(&customer_to_entertain->mtx);
-
   customer_to_entertain->patience +=
       customer_to_entertain->patience *
-      (rng_next_range(&waiter->rng, 2, 10) / 100.0);
+      (rng_next_range(&waiter->rng, 0, 20) - 10) / 100.0;
 
   pthread_mutex_unlock(&customer_to_entertain->mtx);
 }
@@ -62,6 +66,7 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
   }
 
   customer->wants_to_order = false;
+  double customer_time_left = customer->patience - customer->time_waiting;
   pthread_mutex_unlock(&customer->mtx);
 
   Result result = RESULT_OK;
@@ -78,11 +83,6 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
     dish_ticket.customer = customer;
     dish_ticket.waiter = waiter;
 
-    pthread_mutex_lock(&customer->mtx);
-    double dish_weight = total_price / customer->patience;
-    double customer_time_left = customer->patience - customer->time_waiting;
-    pthread_mutex_unlock(&customer->mtx);
-
     Cook* min_cook = nullptr;
     double min_cook_score = DBL_MAX;
 
@@ -90,12 +90,14 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
       Cook* cook = vec_at(&waiter->restaurant->cooks, c);
 
       pthread_mutex_lock(&cook->mtx);
-      double customer_out_of_patience_penalty =
-          3 * fmax(0, cook->queued_time - customer_time_left);
-      double cook_score =
-          (dish_weight * (cook->queued_time + dish->cook_time)) +
-          customer_out_of_patience_penalty;
+      double cook_finish_time = cook->queued_time + dish->cook_time;
+      double urgency = total_price / fmax(customer_time_left, 1.0);
+      double cook_score = cook_finish_time * urgency;
       pthread_mutex_unlock(&cook->mtx);
+
+      if (cook_finish_time > customer_time_left) {
+        cook_score *= 2;
+      }
 
       if (cook_score < min_cook_score) {
         min_cook = cook;

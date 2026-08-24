@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "../fifo-queue.h"
@@ -163,6 +164,7 @@ void restaurant_drop(Restaurant* restaurant) {
     }
   }
   vec_drop(&restaurant->cooks, nullptr);
+  fprintf(stderr, "cooks dropped\n");
 
   for (size_t i = 0; i < restaurant->waiters.length; ++i) {
     Result local_result = waiter_drop(vec_at(&restaurant->waiters, i));
@@ -171,6 +173,7 @@ void restaurant_drop(Restaurant* restaurant) {
     }
   }
   vec_drop(&restaurant->waiters, nullptr);
+  fprintf(stderr, "waiters dropped\n");
 
   for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
        node = node->next) {
@@ -182,6 +185,9 @@ void restaurant_drop(Restaurant* restaurant) {
     }
   }
   queue_drop(&restaurant->customers, nullptr);
+  fprintf(stderr, "customers dropped\n");
+
+  fprintf(stderr, "final score: %f\n", restaurant->score);
 
   sink_drop(&restaurant->sink);
   kitchen_drop(&restaurant->kitchen);
