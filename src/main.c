@@ -1,4 +1,3 @@
-#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -82,7 +81,11 @@ int main() {
     }
 
     if (sigusr1_get_raised()) {
+      fprintf(stderr, "handling sigusr1 signal");
+
       // TODO: dump restaurant status.
+
+      // Set to false to avoid checking again on next loop.
       sigusr1_set_raised(false);
     }
 
