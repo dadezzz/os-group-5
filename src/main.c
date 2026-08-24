@@ -1,6 +1,9 @@
+#include <asm-generic/errno-base.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -10,7 +13,10 @@
 #include "lib/result.h"
 #include "lib/rng.h"
 #include "lib/sigusr1.h"
+#include "lib/state/kitchen.h"
 #include "lib/state/restaurant.h"
+#include "lib/threads/cook.h"
+#include "lib/threads/customer.h"
 #include "lib/timer.h"
 #include "lib/vec.h"
 
@@ -43,6 +49,23 @@ int main() {
   if (result == RESULT_OK) {
     result = restaurant_init(&restaurant, &timer, config.random_seed,
                              config.max_customers, &resources, &dishes);
+  }
+
+  if (result == RESULT_OK) {
+    int tmp = mkdir("tmp", 0775);
+    if (tmp != 0 && errno != EEXIST) {
+      result = RESULT_MKDIR_FAILED;
+    }
+  }
+
+  if (result == RESULT_OK) {
+    FILE* file = fopen("tmp/restaurant.pid", "w");
+    if (file == nullptr) {
+      result = RESULT_FILE_OPENING_FAILED;
+    } else {
+      fprintf(file, "%d\n", getpid());
+      fclose(file);
+    }
   }
 
   if (result == RESULT_OK) {
@@ -82,9 +105,48 @@ int main() {
     }
 
     if (sigusr1_get_raised()) {
-      fprintf(stderr, "handling sigusr1 signal");
+      fprintf(stderr, "handling sigusr1 signal\n");
 
-      // TODO: dump restaurant status.
+      int current_customers_count = 0;
+      int unserved_customers_count = 0;
+      for (FIFOQueueNode* node = restaurant.customers.head; node != nullptr;
+           node = node->next) {
+        Customer* customer = node->value;
+
+        if (!customer->has_left) {
+          current_customers_count++;
+        }
+
+        if (customer->has_left &&
+            customer->dishes_served < customer->order_dishes.length) {
+          unserved_customers_count++;
+        }
+      }
+
+      fprintf(stdout, "--- RESTAURANT STATUS ---\n");
+      fprintf(stdout, "Current score:   %f\n", restaurant.score);
+      fprintf(stdout, "Customers:\n");
+      fprintf(stdout, "--- currently in restaurant:   %d\n",
+              current_customers_count);
+      fprintf(stdout, "--- left unserved:   %d\n", unserved_customers_count);
+      fprintf(stdout, "--- progress (spawned / total):  %lu / %d\n",
+              restaurant.customers.lenght, config.total_customers);
+
+      fprintf(stdout, "Lenght of cooks' dishes queues:\n");
+      for (size_t i = 0; i < restaurant.cooks.length; i++) {
+        Cook* cook = vec_at(&restaurant.cooks, i);
+
+        fprintf(stdout, "--- cook %lu:   %lu\n", i, cook->dish_tickets.lenght);
+      }
+
+      fprintf(stdout, "Current availability of kitchen resources:\n");
+      for (size_t i = 0; i < restaurant.kitchen.resources.length; i++) {
+        KitchenResource* kitchen_resources =
+            vec_at(&restaurant.kitchen.resources, i);
+
+        fprintf(stdout, "--- %s:   %b\n", kitchen_resources->resource->name,
+                kitchen_resources->available);
+      }
 
       // Set to false to avoid checking again on next loop.
       sigusr1_set_raised(false);
