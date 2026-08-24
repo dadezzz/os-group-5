@@ -15,7 +15,7 @@ typedef struct Customer {
   sem_t* seats;
   Vec order_dishes;
   size_t dishes_served;
-  int time_to_serve;
+  int time_waiting;
   int patience;
   bool wants_to_order;
   bool has_left;
@@ -25,6 +25,8 @@ typedef struct Customer {
 void customer_serve(Customer* customer);
 
 Result customer_init(Customer* customer, Restaurant* restaurant);
+
+int customer_order_total_price(Customer* customer);
 
 Result customer_drop(Customer* customer);
 
