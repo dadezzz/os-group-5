@@ -40,7 +40,7 @@ int main() {
   Restaurant restaurant;
   if (result == RESULT_OK) {
     restaurant_init(&restaurant, &timer, config.random_seed,
-                    config.max_customers);
+                    config.max_customers, &resources, &dishes);
   }
 
   if (result == RESULT_OK) {
