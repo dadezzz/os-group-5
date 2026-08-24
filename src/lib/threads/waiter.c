@@ -1,16 +1,22 @@
 #include "waiter.h"
 
+#include <float.h>
+#include <math.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "../data/dishes/dishes.h"
 #include "../fifo-queue.h"
 #include "../result.h"
 #include "../rng.h"
 #include "../state/dish-ticket.h"
 #include "../state/restaurant.h"
 #include "../timer.h"
+#include "../vec.h"
+#include "cook.h"
 #include "customer.h"
 #include "wrapper.h"
 
@@ -48,17 +54,67 @@ static void entertain_customers(Waiter* waiter) {
   pthread_mutex_unlock(&customer_to_entertain->mtx);
 }
 
+static Result waiter_take_order(Waiter* waiter, Customer* customer) {
+  Result result = RESULT_OK;
+  pthread_mutex_lock(&customer->mtx);
+
+  if (!customer->has_left && customer->wants_to_order) {
+    double total_price = customer_order_total_price(customer);
+
+    fprintf(stderr, "waiter %lu is taking order\n", waiter->tid);
+
+    for (size_t i = 0; i < customer->order_dishes.length; ++i) {
+      Dish* dish = vec_at(&customer->order_dishes, i);
+
+      DishTicket dish_ticket;
+      dish_ticket.dish = dish;
+      dish_ticket.customer = customer;
+      dish_ticket.waiter = waiter;
+
+      double dish_weight = total_price / dish->price;
+
+      Cook* min_cook = nullptr;
+      double min_cook_score = DBL_MAX;
+      for (size_t c = 0; c < waiter->restaurant->cooks.length; ++c) {
+        Cook* cook = vec_at(&waiter->restaurant->cooks, c);
+
+        double customer_time_left = customer->patience - customer->time_waiting;
+        double customer_out_of_patience_penalty =
+            3 * fmax(0, cook->queued_time - customer_time_left);
+        double cook_score =
+            (dish_weight * (cook->queued_time + dish->cook_time)) +
+            customer_out_of_patience_penalty;
+
+        if (cook_score < min_cook_score) {
+          min_cook = cook;
+          min_cook_score = cook_score;
+        }
+      }
+
+      // Just to handle the case where there are 0 cooks.
+      if (min_cook != nullptr) {
+        result = cook_assign(min_cook, &dish_ticket);
+      }
+    }
+  } else {
+    result = RESULT_CUSTOMER_NO_ORDER;
+  }
+
+  customer->wants_to_order = false;
+  pthread_mutex_unlock(&customer->mtx);
+  return result;
+}
+
 static Result waiter_thread(void* void_waiter) {
   Waiter* waiter = void_waiter;
 
   while (true) {
     if (sem_trywait(&waiter->sem) == 0) {
       pthread_mutex_lock(&waiter->mtx);
-
       DishTicket* dish_ticket = queue_pop(&waiter->ready_dish_tickets);
+      pthread_mutex_unlock(&waiter->mtx);
 
       if (dish_ticket != nullptr) {
-        pthread_mutex_unlock(&waiter->mtx);
         customer_serve(dish_ticket->customer);
         free(dish_ticket);
         // Check again the semaphore without waiting for one tick to pass.
@@ -67,44 +123,35 @@ static Result waiter_thread(void* void_waiter) {
 
       if (restaurant_is_closing(waiter->restaurant)) {
         // Terminate after having emptied the queue.
-        pthread_mutex_unlock(&waiter->mtx);
         break;
       }
-
-      pthread_mutex_unlock(&waiter->mtx);
     }
 
     pthread_mutex_lock(&waiter->restaurant->mtx);
 
+    bool order_taken = false;
+
     for (FIFOQueueNode* node = waiter->restaurant->customers.head;
          node != nullptr; node = node->next) {
-      Customer* customer = node->value;
-      pthread_mutex_lock(&customer->mtx);
+      Result result = waiter_take_order(waiter, node->value);
 
-      if (!customer->has_left && customer->wants_to_order) {
-        // TODO: create dish tickets.
-        // Result result = waiter_take_order(waiter, customer);
-
-        // if (result == RESULT_OK) {
-        //   customer->wants_to_order = false;
-        // }
-
-        pthread_mutex_unlock(&customer->mtx);
-
-        // if (result != RESULT_OK) {
-        //   pthread_mutex_unlock(&waiter->restaurant->mtx);
-        //   return result;
-        // }
-
-        // TODO: select cooks and call cook_assign with the dish tickets.
-
+      if (result == RESULT_OK) {
+        order_taken = true;
         break;
       }
 
-      pthread_mutex_unlock(&customer->mtx);
+      if (result != RESULT_CUSTOMER_NO_ORDER) {
+        pthread_mutex_unlock(&waiter->restaurant->mtx);
+        return result;
+      }
     }
 
     pthread_mutex_unlock(&waiter->restaurant->mtx);
+
+    // Skip waiting and entertaining customers.
+    if (order_taken) {
+      continue;
+    }
 
     // Decide if entertain a customer
     int random = rng_next_range(&waiter->rng, 0, 99);

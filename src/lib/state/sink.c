@@ -2,6 +2,8 @@
 
 #include <pthread.h>
 
+#include "../timer.h"
+#include "kitchen.h"
 #include "restaurant.h"
 
 void sink_wash(Sink* sink, KitchenResource* resource) {

@@ -30,9 +30,12 @@ static double customer_order_calculate_score(Customer* customer) {
   double total_price = customer_order_total_price(customer);
 
   if (customer->order_dishes.length == customer->dishes_served) {
+    fprintf(stderr, "customer %lu left with complete order\n", customer->tid);
     return total_price * (1 - (customer->time_waiting / customer->patience));
   }
 
+  fprintf(stderr, "customer %lu sadly left with incomplete order\n",
+          customer->tid);
   return -1 * total_price *
          log2(1 + (customer->patience / (1 + customer->dishes_served)));
 }

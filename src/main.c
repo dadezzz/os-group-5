@@ -81,8 +81,8 @@ int main() {
       timer_tick(&timer);
       next_tick_at = now;
       // TODO: consider nanoseconds when 0 < gamespeed < 1.
-      // next_tick_at.tv_nsec += (long)(1e9 * config.game_speed);
-      next_tick_at.tv_sec += 1;
+      next_tick_at.tv_nsec += (long)(1e9 * 0.25 * config.game_speed);
+      // next_tick_at.tv_sec += 1;
     }
 
     if (timespec_difference(now, next_status_at) > 0) {
