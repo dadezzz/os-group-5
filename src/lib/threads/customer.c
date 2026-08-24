@@ -1,11 +1,11 @@
 #include "customer.h"
 
 #include <pthread.h>
-#include <semaphore.h>
 
 #include "../result.h"
 #include "../rng.h"
 #include "../state/order.h"
+#include "../state/restaurant.h"
 #include "wrapper.h"
 
 void customer_serve(Customer* customer) {
@@ -17,6 +17,9 @@ void customer_serve(Customer* customer) {
 
   ++customer->order.dishes_served;
 
+  // TODO: if order.dishes_served == order.dishes.length then the customer can
+  // leave the restaurant.
+
   pthread_mutex_unlock(&customer->mtx);
 }
 
@@ -27,22 +30,19 @@ static Result customer_thread(void* void_customer) {
 
   // TODO
 
+  // Update restaurant score.
+
   customer->has_left = true;
-  sem_post(customer->seats);
   return RESULT_OK;
 }
 
-Result customer_init(Customer* customer,
-                     RNGState* rng_main_state,
-                     sem_t* seats) {
-  rng_state_init_thread(rng_main_state, &customer->rng);
+Result customer_init(Customer* customer, Restaurant* restaurant) {
+  customer->restaurant = restaurant;
+  rng_init_thread(&restaurant->rng, &customer->rng);
 
   customer->wants_to_order = false;
-  // TODO: create an order with random dishes
-  // order_init(&customer->order, dishes, customer);
-
-  customer->seats = seats;
-  sem_wait(customer->seats);
+  order_init(&customer->order, customer);
+  // TODO: add dishes to customer.order.
 
   return thread_init(&customer->tid, customer_thread, customer);
 }

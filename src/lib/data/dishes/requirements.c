@@ -35,7 +35,7 @@ static Result parse_requirement(const char* requirement_str,
   // Make sure link exists
   if (requirement->resource == nullptr) {
     free(name);
-    return RESULT_DISHES_RESOURCE_NOT_FOUND;
+    return RESULT_REQUIREMENTS_RESOURCE_NOT_FOUND;
   }
 
   free(name);
