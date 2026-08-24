@@ -81,3 +81,19 @@ void rng_init_thread(RNGState* main_state, RNGState* thread_state) {
   // the new thread.
   jump(main_state);
 }
+
+// Returns the next random value in inclusive range [min, max] for the given state.
+uint64_t rng_next_range(RNGState* state, uint64_t min, uint64_t max){
+  if (min >= max) {
+    return min;
+  }
+
+  const uint64_t range = max - min + 1;
+  // Check overflow.
+  if (range == 0) {
+    return rng_next(state);
+  }
+
+  uint64_t number = (rng_next(state) % range) + min;
+  return number;
+}
