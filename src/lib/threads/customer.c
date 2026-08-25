@@ -59,7 +59,7 @@ static Result customer_thread(void* void_customer) {
   // Check patience every tick because waiters might modify it by entertaining
   // the customer.
   while (true) {
-    restaurant_time_wait(customer->restaurant, ticks_to_wait);
+    restaurant_time_wait(customer->restaurant, 1);
 
     pthread_mutex_lock(&customer->mtx);
 
