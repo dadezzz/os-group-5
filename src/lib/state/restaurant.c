@@ -85,11 +85,13 @@ Result restaurant_spawn_customer(Restaurant* restaurant) {
   pthread_mutex_lock(&restaurant->mtx);
   for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
        node = node->next) {
-    Customer* old_customer = node->value;
+    Customer* customer = node->value;
 
-    if (!old_customer->has_left) {
+    pthread_mutex_lock(&customer->mtx);
+    if (!customer->has_left) {
       ++occupied_seats;
     }
+    pthread_mutex_unlock(&customer->mtx);
   }
 
   if (occupied_seats == restaurant->config->max_customers) {

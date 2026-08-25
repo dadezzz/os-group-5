@@ -63,7 +63,6 @@ Result kitchen_get_resources(Kitchen* kitchen,
   }
 
   pthread_mutex_unlock(&kitchen->mtx);
-
   return result;
 }
 
