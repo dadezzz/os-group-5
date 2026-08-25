@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -31,12 +32,14 @@ static double customer_order_calculate_score(Customer* customer) {
   double score;
 
   if (customer->order_dishes.length == customer->dishes_served) {
-    score = total_price * (1 - (customer->time_waiting / customer->patience));
+    score =
+        ceil(total_price * (1 - (customer->time_waiting / customer->patience)));
     fprintf(stderr, "customer %lu left with complete order, delta: %f\n",
             customer->tid, score);
   } else {
-    score = -1 * total_price *
-            log2(1 + (customer->patience / (1 + customer->dishes_served)));
+    score =
+        -ceil(total_price *
+              log2(1 + (customer->patience / (1 + customer->dishes_served))));
     fprintf(stderr,
             "customer %lu sadly left with incomplete order, delta: %f\n",
             customer->tid, score);
@@ -79,9 +82,7 @@ static Result customer_thread(void* void_customer) {
   double score = customer_order_calculate_score(customer);
   pthread_mutex_unlock(&customer->mtx);
 
-  pthread_mutex_lock(&customer->restaurant->mtx);
-  customer->restaurant->score += score;
-  pthread_mutex_unlock(&customer->restaurant->mtx);
+  atomic_fetch_sub(&customer->restaurant->score, score);
 
   return RESULT_OK;
 }

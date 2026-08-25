@@ -26,7 +26,7 @@ Result restaurant_init(Restaurant* restaurant,
 ) {
   Result result = RESULT_OK;
 
-  restaurant->score = 0;
+  atomic_init(&restaurant->score, 0);
   restaurant->config = config;
   restaurant->dishes = dishes;
   atomic_init(&restaurant->is_closing, false);
@@ -193,7 +193,7 @@ void restaurant_drop(Restaurant* restaurant) {
   queue_drop(&restaurant->customers, nullptr);
   fprintf(stderr, "customers dropped\n");
 
-  fprintf(stderr, "final score: %f\n", restaurant->score);
+  fprintf(stderr, "final score: %f\n", atomic_load(&restaurant->score));
 
   sink_drop(&restaurant->sink);
   kitchen_drop(&restaurant->kitchen);

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -19,7 +20,7 @@
 #include "lib/threads/customer.h"
 #include "lib/vec.h"
 
-const unsigned int PRINT_STATUS_INTERVAL = 1;  // in seconds
+const unsigned int PRINT_STATUS_INTERVAL = 5;  // in seconds
 
 static double timespec_difference(struct timespec a, struct timespec b) {
   return (a.tv_sec - b.tv_sec) + (a.tv_nsec - b.tv_nsec) / 1e9;
@@ -62,7 +63,7 @@ static void status_print(Config* config,
   }
 
   fprintf(stdout, "--- RESTAURANT STATUS ---\n");
-  fprintf(stdout, "Current score:   %f\n", restaurant->score);
+  fprintf(stdout, "Current score:   %f\n", atomic_load(&restaurant->score));
   fprintf(stdout, "Customers:\n");
   fprintf(stdout, "--- currently in restaurant:   %d\n",
           current_customers_count);

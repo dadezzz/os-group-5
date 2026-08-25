@@ -16,7 +16,7 @@
 
 typedef struct Restaurant {
   Config* config;
-  double score;
+  atomic_int score;
   pthread_mutex_t mtx;
   RNGState rng;
   // Has to be a queue because we have references to customer that left in
