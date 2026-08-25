@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,15 +31,11 @@ static void entertain_customers(Waiter* waiter) {
 
     pthread_mutex_lock(&customer->mtx);
 
-    if (customer_to_entertain == nullptr) {
+    if (customer_to_entertain == nullptr ||
+        customer->patience - customer->time_waiting <
+            customer_to_entertain->patience -
+                customer_to_entertain->time_waiting) {
       customer_to_entertain = customer;
-      break;
-    }
-
-    if (customer->patience - customer->time_waiting <
-        customer_to_entertain->patience - customer_to_entertain->time_waiting) {
-      customer_to_entertain = customer;
-      break;
     }
 
     // The lock of customer_to_entertain_is released at the end.
@@ -50,9 +47,11 @@ static void entertain_customers(Waiter* waiter) {
     return;
   }
 
+  pthread_mutex_lock(&customer_to_entertain->mtx);
+
   customer_to_entertain->patience +=
       customer_to_entertain->patience *
-      (rng_next_range(&waiter->rng, 0, 20) - 10) / 100.0;
+      ((double)rng_next_range(&waiter->rng, 0, 20) - 10) / 100.0;
 
   pthread_mutex_unlock(&customer_to_entertain->mtx);
 }

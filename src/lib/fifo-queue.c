@@ -40,12 +40,13 @@ void* queue_remove_at(FIFOQueue* queue, FIFOQueueNode* node) {
   }
 
   void* value = current->value;
-  free(current);
 
   // Update queue tail.
   if (queue->tail == current) {
     queue->tail = parent;
   }
+
+  free(current);
 
   queue->lenght--;
 
