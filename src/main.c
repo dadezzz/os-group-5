@@ -20,7 +20,7 @@
 #include "lib/timer.h"
 #include "lib/vec.h"
 
-const uint PRINT_STATUS_INTERVAL = 30; //in seconds
+const uint PRINT_STATUS_INTERVAL = 30;  // in seconds
 
 static double timespec_difference(struct timespec a, struct timespec b) {
   return (a.tv_sec - b.tv_sec) + (a.tv_nsec - b.tv_nsec) / 1e9;
