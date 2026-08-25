@@ -5,6 +5,7 @@
 #include <semaphore.h>
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
