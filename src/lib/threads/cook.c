@@ -52,7 +52,6 @@ static Result cook_thread(void* void_cook) {
     Vec acquired_resources;
     pthread_mutex_lock(&cook->mtx);
     cook_select_next_ticket(cook, &selected_dish_ticket, &acquired_resources);
-
     pthread_mutex_unlock(&cook->mtx);
 
     if (selected_dish_ticket == nullptr) {
@@ -81,9 +80,7 @@ static Result cook_thread(void* void_cook) {
       if (clean_cost < dirty_cost) {
         sink_wash(&cook->restaurant->sink, kitchen_resource);
       } else {
-        pthread_mutex_lock(&cook->restaurant->mtx);
-        cook->restaurant->score -= dirty_cost;
-        pthread_mutex_unlock(&cook->restaurant->mtx);
+        atomic_fetch_sub(&cook->restaurant->score, ceil(dirty_cost));
       }
     }
 
