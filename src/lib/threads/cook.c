@@ -17,6 +17,26 @@
 #include "waiter.h"
 #include "wrapper.h"
 
+static void cook_select_next_ticket(Cook* cook,
+                                    DishTicket** selected_dish_ticket,
+                                    Vec* acquired_resources) {
+  for (FIFOQueueNode* node = cook->dish_tickets.head; node != nullptr;
+       node = node->next) {
+    DishTicket* dish_ticket = node->value;
+
+    Result result = kitchen_get_resources(&cook->restaurant->kitchen,
+                                          &dish_ticket->dish->requirements,
+                                          acquired_resources);
+
+    if (result == RESULT_OK) {
+      cook->queued_time -= dish_ticket->dish->cook_time;
+      queue_remove_at(&cook->dish_tickets, node);
+      *selected_dish_ticket = dish_ticket;
+      break;
+    }
+  }
+}
+
 static Result cook_thread(void* void_cook) {
   Cook* cook = void_cook;
 
@@ -28,72 +48,54 @@ static Result cook_thread(void* void_cook) {
       break;
     }
 
-    pthread_mutex_lock(&cook->mtx);
-
     DishTicket* selected_dish_ticket = nullptr;
     Vec acquired_resources;
+    pthread_mutex_lock(&cook->mtx);
+    cook_select_next_ticket(cook, &selected_dish_ticket, &acquired_resources);
 
-    for (FIFOQueueNode* node = cook->dish_tickets.head; node != nullptr;
-         node = node->next) {
-      DishTicket* dish_ticket = node->value;
+    pthread_mutex_unlock(&cook->mtx);
 
-      Result result = kitchen_get_resources(&cook->restaurant->kitchen,
-                                            &dish_ticket->dish->requirements,
-                                            &acquired_resources);
+    if (selected_dish_ticket == nullptr) {
+      // Re-queue the dish tickets again.
+      restaurant_time_wait(cook->restaurant, 1);
+      sem_post(&cook->sem);
+      continue;
+    }
 
-      if (result == RESULT_OK) {
-        queue_remove_at(&cook->dish_tickets, node);
-        selected_dish_ticket = dish_ticket;
-        break;
+    for (size_t i = 0; i < acquired_resources.length; i++) {
+      KitchenResource** kitchen_resource_ref = vec_at(&acquired_resources, i);
+      KitchenResource* kitchen_resource = *kitchen_resource_ref;
+
+      double dirty_cost = pow(2, atomic_load(&kitchen_resource->dirtiness)) *
+                          log2(1 + kitchen_resource->resource->clean_time);
+
+      int waiting = atomic_load(&cook->restaurant->sink.waiting);
+      pthread_mutex_lock(&selected_dish_ticket->customer->mtx);
+      double clean_cost = kitchen_resource->resource->clean_time * waiting *
+                          selected_dish_ticket->dish->price /
+                          fmax(selected_dish_ticket->customer->patience -
+                                   selected_dish_ticket->customer->time_waiting,
+                               1.0);
+      pthread_mutex_unlock(&selected_dish_ticket->customer->mtx);
+
+      if (clean_cost < dirty_cost) {
+        sink_wash(&cook->restaurant->sink, kitchen_resource);
+      } else {
+        pthread_mutex_lock(&cook->restaurant->mtx);
+        cook->restaurant->score -= dirty_cost;
+        pthread_mutex_unlock(&cook->restaurant->mtx);
       }
     }
 
-    if (selected_dish_ticket != nullptr) {
-      cook->queued_time -= selected_dish_ticket->dish->cook_time;
-      pthread_mutex_unlock(&cook->mtx);
+    // Cook dish
+    restaurant_time_wait(cook->restaurant,
+                         selected_dish_ticket->dish->cook_time);
+    kitchen_drop_resources(&cook->restaurant->kitchen, &acquired_resources);
 
-      // Clean resources if needed
-      for (size_t i = 0; i < acquired_resources.length; i++) {
-        KitchenResource** kitchen_resource_ref = vec_at(&acquired_resources, i);
-        KitchenResource* kitchen_resource = *kitchen_resource_ref;
-
-        double dirty_cost = pow(2, kitchen_resource->dirtiness) *
-                            log2(1 + kitchen_resource->resource->clean_time);
-
-        int waiting = atomic_load(&cook->restaurant->sink.waiting);
-        pthread_mutex_lock(&selected_dish_ticket->customer->mtx);
-        double clean_cost =
-            kitchen_resource->resource->clean_time * waiting *
-            selected_dish_ticket->dish->price /
-            fmax(selected_dish_ticket->customer->patience -
-                     selected_dish_ticket->customer->time_waiting,
-                 1.0);
-        pthread_mutex_unlock(&selected_dish_ticket->customer->mtx);
-
-        if (clean_cost < dirty_cost) {
-          sink_wash(&cook->restaurant->sink, kitchen_resource);
-        } else {
-          pthread_mutex_lock(&cook->restaurant->mtx);
-          cook->restaurant->score -= dirty_cost;
-          pthread_mutex_unlock(&cook->restaurant->mtx);
-        }
-      }
-
-      // Cook dish
-      restaurant_time_wait(cook->restaurant,
-                           selected_dish_ticket->dish->cook_time);
-      kitchen_drop_resources(&cook->restaurant->kitchen, &acquired_resources);
-
-      Result result =
-          waiter_assign(selected_dish_ticket->waiter, selected_dish_ticket);
-      if (result != RESULT_OK) {
-        return result;
-      }
-    } else {
-      // Re-queue the dish tickets again.
-      pthread_mutex_unlock(&cook->mtx);
-
-      sem_post(&cook->sem);
+    Result result =
+        waiter_assign(selected_dish_ticket->waiter, selected_dish_ticket);
+    if (result != RESULT_OK) {
+      return result;
     }
   }
 

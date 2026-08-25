@@ -13,9 +13,7 @@ void sink_wash(Sink* sink, KitchenResource* resource) {
   restaurant_time_wait(sink->restaurant, resource->resource->clean_time);
   atomic_fetch_sub(&sink->waiting, 1);
 
-  pthread_mutex_lock(&sink->restaurant->kitchen.mtx);
-  resource->dirtiness = 0;
-  pthread_mutex_unlock(&sink->restaurant->kitchen.mtx);
+  atomic_store(&resource->dirtiness, 0);
 
   pthread_mutex_unlock(&sink->mtx);
 }
