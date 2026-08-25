@@ -14,6 +14,7 @@ typedef struct FIFOQueueNode {
 
 typedef struct FIFOQueue {
   size_t value_size;
+  size_t lenght;
   FIFOQueueNode* head;
   FIFOQueueNode* tail;
 } FIFOQueue;
