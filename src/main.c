@@ -26,6 +26,21 @@ static double timespec_difference(struct timespec a, struct timespec b) {
   return (a.tv_sec - b.tv_sec) + (a.tv_nsec - b.tv_nsec) / 1e9;
 }
 
+static void timespec_add(struct timespec* t, double game_speed) {
+  double interval = 1e9 / game_speed;
+  long sec = (long)(interval / 1e9);
+  long nsec = ((long)interval % (long)1e9);
+
+  t->tv_sec += sec;
+  t->tv_nsec += nsec;
+
+  // Riporto se la somma sfora il miliardo di nanosecondi
+  if (t->tv_nsec >= 1000000000L) {
+    t->tv_sec += 1;
+    t->tv_nsec -= 1000000000L;
+  }
+}
+
 static void status_print(Config* config,
                          Restaurant* restaurant,
                          bool extended_print) {
@@ -171,9 +186,7 @@ int main() {
     if (timespec_difference(now, next_tick_at) > 0) {
       timer_tick(&timer);
       next_tick_at = now;
-      // TODO: consider nanoseconds when 0 < gamespeed < 1.
-      next_tick_at.tv_nsec += (long)(1e9 * 0.05 * config.game_speed);
-      // next_tick_at.tv_sec += 1;
+      timespec_add(&next_tick_at, config.game_speed);
     }
 
     usleep(1000);
