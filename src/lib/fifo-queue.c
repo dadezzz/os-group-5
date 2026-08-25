@@ -65,7 +65,11 @@ Result queue_push(FIFOQueue* queue, const void* value) {
     return RESULT_OUT_OF_MEMORY;
   }
 
-  memcpy(new_node->value, value, queue->value_size);
+  // Setting value to nullptr allows to allocate and then initialize in place.
+  if (value != nullptr) {
+    memcpy(new_node->value, value, queue->value_size);
+  }
+
   new_node->next = nullptr;
 
   if (queue_is_empty(queue)) {

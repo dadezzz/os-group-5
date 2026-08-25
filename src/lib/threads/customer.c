@@ -48,6 +48,17 @@ static int customer_order_calculate_score(Customer* customer) {
   return score;
 }
 
+static void customer_leave(Customer* customer) {
+  pthread_mutex_lock(&customer->restaurant->mtx);
+  pthread_mutex_lock(&customer->mtx);
+  customer->has_left = true;
+  int score = customer_order_calculate_score(customer);
+  pthread_mutex_unlock(&customer->mtx);
+  --customer->restaurant->present_customers;
+  atomic_fetch_add(&customer->restaurant->score, score);
+  pthread_mutex_unlock(&customer->restaurant->mtx);
+}
+
 static Result customer_thread(void* void_customer) {
   Customer* customer = void_customer;
 
@@ -68,19 +79,14 @@ static Result customer_thread(void* void_customer) {
 
     if (customer->time_waiting >= customer->patience ||
         customer->order_dishes.length == customer->dishes_served) {
+      pthread_mutex_unlock(&customer->mtx);
       break;
     }
 
     pthread_mutex_unlock(&customer->mtx);
   }
 
-  // Mutex locked from the loop.
-  customer->has_left = true;
-  int score = customer_order_calculate_score(customer);
-  pthread_mutex_unlock(&customer->mtx);
-
-  atomic_fetch_add(&customer->restaurant->score, score);
-
+  customer_leave(customer);
   return RESULT_OK;
 }
 

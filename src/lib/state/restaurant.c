@@ -44,6 +44,7 @@ Result restaurant_init(Restaurant* restaurant,
   vec_init(&restaurant->cooks, sizeof(Cook));
   vec_init(&restaurant->waiters, sizeof(Waiter));
   queue_init(&restaurant->customers, sizeof(Customer));
+  restaurant->present_customers = 0;
 
   return RESULT_OK;
 }
@@ -80,42 +81,21 @@ Result restaurant_spawn_waiters(Restaurant* restaurant, size_t quantity) {
 }
 
 Result restaurant_spawn_customer(Restaurant* restaurant) {
-  unsigned int occupied_seats = 0;
-
   pthread_mutex_lock(&restaurant->mtx);
-  for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
-       node = node->next) {
-    Customer* customer = node->value;
-
-    pthread_mutex_lock(&customer->mtx);
-    if (!customer->has_left) {
-      ++occupied_seats;
-    }
-    pthread_mutex_unlock(&customer->mtx);
-  }
-
-  if (occupied_seats == restaurant->config->max_customers) {
+  if (restaurant->present_customers == restaurant->config->max_customers) {
     pthread_mutex_unlock(&restaurant->mtx);
     return RESULT_RESTAURANT_FULL;
   }
 
   Result result = RESULT_OK;
 
-  // Has to be pre-allocated because the customer passed to customer_init has
-  // to be in the same location as the one on the queue.
-  Customer* customer = malloc(sizeof(Customer));
-  if (customer == nullptr) {
-    result = RESULT_OUT_OF_MEMORY;
+  if (result == RESULT_OK) {
+    result = queue_push(&restaurant->customers, nullptr);
   }
 
   if (result == RESULT_OK) {
-    result = queue_push_allocated(&restaurant->customers, customer);
-  }
-  if (result != RESULT_OK) {
-    free(customer);
-  }
-
-  if (result == RESULT_OK) {
+    ++restaurant->present_customers;
+    Customer* customer = restaurant->customers.tail->value;
     result = customer_init(customer, restaurant);
   }
 
@@ -128,27 +108,17 @@ bool restaurant_is_closing(Restaurant* restaurant) {
 }
 
 bool restaurant_has_finished(Restaurant* restaurant) {
-  unsigned int seated_people = 0;
-  bool present_people = false;
+  unsigned int total_people = 0;
 
   pthread_mutex_lock(&restaurant->mtx);
-
   for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
        node = node->next) {
-    Customer* customer = node->value;
-
-    ++seated_people;
-
-    pthread_mutex_lock(&customer->mtx);
-    if (!customer->has_left) {
-      present_people = true;
-    }
-    pthread_mutex_unlock(&customer->mtx);
+    ++total_people;
   }
-
   pthread_mutex_unlock(&restaurant->mtx);
-  return seated_people == restaurant->config->total_customers &&
-         !present_people;
+
+  return total_people == restaurant->config->total_customers &&
+         restaurant->present_customers == 0;
 }
 
 void restaurant_time_wait(Restaurant* restaurant, unsigned int units) {

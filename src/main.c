@@ -181,8 +181,8 @@ int main() {
       next_status_at.tv_sec += PRINT_STATUS_INTERVAL;
     }
 
-    // Loop every tenth of a second.
-    usleep((unsigned int)1e5);
+    // Loop every hundredth of a second.
+    usleep((unsigned int)1e4);
   }
 
   // Cleanup.

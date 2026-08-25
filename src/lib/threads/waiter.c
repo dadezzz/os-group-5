@@ -32,12 +32,13 @@ static void waiter_entertain_customer(Waiter* waiter) {
 
     pthread_mutex_lock(&customer->mtx);
 
+    double customer_time_left = customer->patience - customer->time_waiting;
     bool should_entertain = !customer->has_left &&
                             (selected_customer == nullptr ||
-                             selected_customer_time_left >
-                                 customer->patience - customer->time_waiting);
+                             selected_customer_time_left > customer_time_left);
     if (should_entertain) {
       selected_customer = customer;
+      selected_customer_time_left = customer_time_left;
     }
 
     pthread_mutex_unlock(&customer->mtx);
@@ -135,7 +136,6 @@ static Result waiter_thread(void* void_waiter) {
   while (true) {
     if (sem_trywait(&waiter->sem) == 0) {
       if (restaurant_is_closing(waiter->restaurant)) {
-        // Terminate after having emptied the queue.
         break;
       }
 

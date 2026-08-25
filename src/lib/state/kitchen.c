@@ -19,6 +19,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
   bool all_available = true;
   Result result = RESULT_OK;
 
+  // Needs a lock because we need to acquire multiple resources in a transaction.
   pthread_mutex_lock(&kitchen->mtx);
 
   for (size_t r = 0; r < requirements->length; ++r) {

@@ -22,8 +22,9 @@ typedef struct Restaurant {
   // Has to be a queue because we have references to customer that left in
   // DishTicket and we cannot drop or move them until the program ends.
   FIFOQueue customers;  // FIFOQueue<Customer>
-  Vec waiters;          // Vec<Waiter>
-  Vec cooks;            // Vec<Cook>
+  unsigned int present_customers;
+  Vec waiters;  // Vec<Waiter>
+  Vec cooks;    // Vec<Cook>
   atomic_bool is_closing;
   Vec* dishes;
   Kitchen kitchen;
