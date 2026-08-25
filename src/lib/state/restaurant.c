@@ -5,32 +5,30 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
+#include "../config.h"
 #include "../fifo-queue.h"
 #include "../result.h"
 #include "../rng.h"
 #include "../threads/cook.h"
 #include "../threads/customer.h"
 #include "../threads/waiter.h"
-#include "../timer.h"
 #include "../vec.h"
 #include "dish-ticket.h"
 #include "kitchen.h"
 #include "sink.h"
 
 Result restaurant_init(Restaurant* restaurant,
-                       Timer* timer,
-                       unsigned int rng_seed,
-                       unsigned int num_seats,
+                       Config* config,
                        Vec* resources,  // Vec<Resource>
                        Vec* dishes      // Vec<Dish>
 ) {
   Result result = RESULT_OK;
 
   restaurant->score = 0;
-  restaurant->timer = timer;
+  restaurant->config = config;
   restaurant->dishes = dishes;
-  restaurant->num_seats = num_seats;
   atomic_init(&restaurant->is_closing, false);
 
   pthread_mutex_init(&restaurant->mtx, nullptr);
@@ -41,7 +39,7 @@ Result restaurant_init(Restaurant* restaurant,
   }
 
   sink_init(&restaurant->sink, restaurant);
-  rng_init_main(&restaurant->rng, rng_seed);
+  rng_init_main(&restaurant->rng, config->random_seed);
 
   vec_init(&restaurant->cooks, sizeof(Cook));
   vec_init(&restaurant->waiters, sizeof(Waiter));
@@ -94,7 +92,7 @@ Result restaurant_spawn_customer(Restaurant* restaurant) {
     }
   }
 
-  if (occupied_seats == restaurant->num_seats) {
+  if (occupied_seats == restaurant->config->max_customers) {
     pthread_mutex_unlock(&restaurant->mtx);
     return RESULT_RESTAURANT_FULL;
   }
@@ -127,7 +125,7 @@ bool restaurant_is_closing(Restaurant* restaurant) {
   return atomic_load(&restaurant->is_closing);
 }
 
-bool restaurant_is_empty(Restaurant* restaurant, unsigned int expected_people) {
+bool restaurant_has_finished(Restaurant* restaurant) {
   unsigned int seated_people = 0;
   bool present_people = false;
 
@@ -147,7 +145,12 @@ bool restaurant_is_empty(Restaurant* restaurant, unsigned int expected_people) {
   }
 
   pthread_mutex_unlock(&restaurant->mtx);
-  return seated_people == expected_people && !present_people;
+  return seated_people == restaurant->config->total_customers &&
+         !present_people;
+}
+
+void restaurant_time_wait(Restaurant* restaurant, unsigned int units) {
+  usleep((unsigned int)(1e6 * units / restaurant->config->game_speed));
 }
 
 void restaurant_drop(Restaurant* restaurant) {
@@ -164,6 +167,7 @@ void restaurant_drop(Restaurant* restaurant) {
     }
   }
   vec_drop(&restaurant->cooks, nullptr);
+
   fprintf(stderr, "cooks dropped\n");
 
   for (size_t i = 0; i < restaurant->waiters.length; ++i) {

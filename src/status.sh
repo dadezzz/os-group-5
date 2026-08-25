@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PID_PATH=./tmp/restaurant.pid
+PID_PATH=/tmp/restaurant.pid
 
 if [ ! -f "$PID_PATH" ] ; then
   echo "$PID_PATH doesn't exist. Restaurant executable needs to be running."

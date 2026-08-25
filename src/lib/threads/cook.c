@@ -5,7 +5,6 @@
 #include <semaphore.h>
 #include <stdatomic.h>
 #include <stddef.h>
-#include <stdio.h>
 
 #include "../fifo-queue.h"
 #include "../result.h"
@@ -14,7 +13,6 @@
 #include "../state/kitchen.h"
 #include "../state/restaurant.h"
 #include "../state/sink.h"
-#include "../timer.h"
 #include "../vec.h"
 #include "waiter.h"
 #include "wrapper.h"
@@ -51,8 +49,6 @@ static Result cook_thread(void* void_cook) {
     }
 
     if (selected_dish_ticket != nullptr) {
-      fprintf(stderr, "cook %lu cooking a %s\n", cook->tid,
-              selected_dish_ticket->dish->name);
       cook->queued_time -= selected_dish_ticket->dish->cook_time;
       pthread_mutex_unlock(&cook->mtx);
 
@@ -64,8 +60,8 @@ static Result cook_thread(void* void_cook) {
         double dirty_cost = pow(2, kitchen_resource->dirtiness) *
                             log2(1 + kitchen_resource->resource->clean_time);
 
-        pthread_mutex_lock(&selected_dish_ticket->customer->mtx);
         int waiting = atomic_load(&cook->restaurant->sink.waiting);
+        pthread_mutex_lock(&selected_dish_ticket->customer->mtx);
         double clean_cost =
             kitchen_resource->resource->clean_time * waiting *
             selected_dish_ticket->dish->price /
@@ -74,15 +70,9 @@ static Result cook_thread(void* void_cook) {
                  1.0);
         pthread_mutex_unlock(&selected_dish_ticket->customer->mtx);
 
-        atomic_store(&cook->is_waiting_timer, true);
-
         if (clean_cost < dirty_cost) {
-          fprintf(stderr, "cook %lu choose to wash, waiting: %d\n", cook->tid,
-                  waiting);
           sink_wash(&cook->restaurant->sink, kitchen_resource);
         } else {
-          fprintf(stderr, "cook %lu choose to use dirty, delta: %f\n",
-                  cook->tid, -1 * dirty_cost);
           pthread_mutex_lock(&cook->restaurant->mtx);
           cook->restaurant->score -= dirty_cost;
           pthread_mutex_unlock(&cook->restaurant->mtx);
@@ -90,13 +80,9 @@ static Result cook_thread(void* void_cook) {
       }
 
       // Cook dish
-      timer_wait(cook->restaurant->timer,
-                 selected_dish_ticket->dish->cook_time);
+      restaurant_time_wait(cook->restaurant,
+                           selected_dish_ticket->dish->cook_time);
       kitchen_drop_resources(&cook->restaurant->kitchen, &acquired_resources);
-      fprintf(stderr, "cook %lu cooked the %s\n", cook->tid,
-              selected_dish_ticket->dish->name);
-
-      atomic_store(&cook->is_waiting_timer, false);
 
       Result result =
           waiter_assign(selected_dish_ticket->waiter, selected_dish_ticket);
@@ -116,7 +102,6 @@ static Result cook_thread(void* void_cook) {
 
 Result cook_init(Cook* cook, Restaurant* restaurant) {
   cook->restaurant = restaurant;
-  atomic_init(&cook->is_waiting_timer, false);
   rng_init_thread(&restaurant->rng, &cook->rng);
   cook->queued_time = 0;
   queue_init(&cook->dish_tickets, sizeof(DishTicket));
@@ -149,11 +134,6 @@ Result cook_drop(Cook* cook) {
 
   // Wake up the cook so that it checks restaurant_is_closing.
   sem_post(&cook->sem);
-
-  // Wait for the cook to finish wathever they are doing.
-  while (atomic_load(&cook->is_waiting_timer)) {
-    timer_tick(cook->restaurant->timer);
-  }
 
   Result result = thread_drop(cook->tid);
 
