@@ -2,6 +2,7 @@
 #define KITCHEN_H
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 #include "../data/resources.h"
 #include "../vec.h"
@@ -9,7 +10,7 @@
 typedef struct {
   Resource* resource;
   bool available;
-  int dirtiness;
+  atomic_int dirtiness;
 } KitchenResource;
 
 typedef struct {

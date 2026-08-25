@@ -14,7 +14,6 @@
 #include "../rng.h"
 #include "../state/dish-ticket.h"
 #include "../state/restaurant.h"
-#include "../timer.h"
 #include "../vec.h"
 #include "cook.h"
 #include "customer.h"
@@ -75,6 +74,7 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
 
   fprintf(stderr, "waiter %lu is taking order\n", waiter->tid);
 
+  // order_dishes is constant during the lifetime of the customer, so no mutex.
   for (size_t i = 0; i < customer->order_dishes.length; ++i) {
     Dish* dish = vec_at(&customer->order_dishes, i);
 
@@ -173,9 +173,7 @@ static Result waiter_thread(void* void_waiter) {
       pthread_mutex_unlock(&waiter->restaurant->mtx);
     }
 
-    // Wait one tick, then if there's something to do, do it or try again to
-    // entertain a customer.
-    timer_wait(waiter->restaurant->timer, 1);
+    restaurant_time_wait(waiter->restaurant, 1);
   }
 
   return RESULT_OK;
@@ -215,9 +213,6 @@ Result waiter_drop(Waiter* waiter) {
 
   // Wake up the waiter so that it checks restaurant_is_closing.
   sem_post(&waiter->sem);
-  // Tick the timer so that the waiter completes the loop and checks the
-  // semaphore again.
-  timer_tick(waiter->restaurant->timer);
 
   Result result = thread_drop(waiter->tid);
 

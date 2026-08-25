@@ -1,4 +1,3 @@
-#include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -10,6 +9,7 @@
 #include "lib/config.h"
 #include "lib/data/dishes/dishes.h"
 #include "lib/data/resources.h"
+#include "lib/fifo-queue.h"
 #include "lib/result.h"
 #include "lib/rng.h"
 #include "lib/sigusr1.h"
@@ -17,17 +17,18 @@
 #include "lib/state/restaurant.h"
 #include "lib/threads/cook.h"
 #include "lib/threads/customer.h"
-#include "lib/timer.h"
 #include "lib/vec.h"
 
-const uint PRINT_STATUS_INTERVAL = 30;  // in seconds
+const unsigned int PRINT_STATUS_INTERVAL = 1;  // in seconds
 
 static double timespec_difference(struct timespec a, struct timespec b) {
   return (a.tv_sec - b.tv_sec) + (a.tv_nsec - b.tv_nsec) / 1e9;
 }
 
-static void timespec_add(struct timespec* t, double game_speed) {
-  double interval = 1e9 / game_speed;
+static void timespec_add(struct timespec* t,
+                         unsigned int units,
+                         double game_speed) {
+  double interval = 1e9 * units / game_speed;
   long sec = (long)(interval / 1e9);
   long nsec = ((long)interval % (long)1e9);
 
@@ -106,24 +107,20 @@ int main() {
     result = dishes_load(config.menu_file, &dishes, &resources);
   }
 
-  Timer timer;
-  timer_init(&timer);
-
   Restaurant restaurant;
   if (result == RESULT_OK) {
-    result = restaurant_init(&restaurant, &timer, config.random_seed,
-                             config.max_customers, &resources, &dishes);
+    result = restaurant_init(&restaurant, &config, &resources, &dishes);
   }
 
   if (result == RESULT_OK) {
-    int tmp = mkdir("tmp", 0775);
+    int tmp = mkdir("/tmp", 0775);
     if (tmp != 0 && errno != EEXIST) {
       result = RESULT_MKDIR_FAILED;
     }
   }
 
   if (result == RESULT_OK) {
-    FILE* file = fopen("tmp/restaurant.pid", "w");
+    FILE* file = fopen("/tmp/restaurant.pid", "w");
     if (file == nullptr) {
       result = RESULT_FILE_OPENING_FAILED;
     } else {
@@ -147,14 +144,16 @@ int main() {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
   struct timespec next_status_at = now;
-  struct timespec next_tick_at = now;
-  int next_customer_at = rng_next_range(&restaurant.rng, 0, 50);
+
   unsigned int spawned_customers = 0;
-  while (result == RESULT_OK &&
-         !restaurant_is_empty(&restaurant, config.total_customers)) {
+  unsigned int next_customer_ticks = rng_next_range(&restaurant.rng, 0, 50);
+  struct timespec next_customer_at = now;
+  timespec_add(&next_customer_at, next_customer_ticks, config.game_speed);
+
+  while (result == RESULT_OK && !restaurant_has_finished(&restaurant)) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    if (timer_get(&timer) >= next_customer_at &&
+    if (timespec_difference(now, next_customer_at) > 0 &&
         spawned_customers < config.total_customers) {
       result = restaurant_spawn_customer(&restaurant);
 
@@ -163,8 +162,9 @@ int main() {
         result = RESULT_OK;
       } else if (result == RESULT_OK) {
         ++spawned_customers;
-        next_customer_at =
-            timer_get(&timer) + rng_next_range(&restaurant.rng, 5, 50);
+        next_customer_ticks = rng_next_range(&restaurant.rng, 0, 50);
+        next_customer_at = now;
+        timespec_add(&next_customer_at, next_customer_ticks, config.game_speed);
       }
     }
 
@@ -183,19 +183,13 @@ int main() {
       next_status_at.tv_sec += PRINT_STATUS_INTERVAL;
     }
 
-    if (timespec_difference(now, next_tick_at) > 0) {
-      timer_tick(&timer);
-      next_tick_at = now;
-      timespec_add(&next_tick_at, config.game_speed);
-    }
-
-    usleep(1000);
+    // Loop every tenth of a second.
+    usleep((unsigned int)1e5);
   }
 
   // Cleanup.
 
   restaurant_drop(&restaurant);
-  timer_drop(&timer);
   vec_drop(&dishes, dish_drop);
   vec_drop(&resources, resource_drop);
   config_drop(&config);

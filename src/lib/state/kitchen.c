@@ -63,7 +63,6 @@ Result kitchen_get_resources(Kitchen* kitchen,
   }
 
   pthread_mutex_unlock(&kitchen->mtx);
-
   return result;
 }
 
@@ -76,7 +75,7 @@ void kitchen_drop_resources(Kitchen* kitchen,
     KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
     KitchenResource* kitchen_resource = *kitchen_resource_ref;
     kitchen_resource->available = true;
-    kitchen_resource->dirtiness++;
+    atomic_fetch_add(&kitchen_resource->dirtiness, 1);
   }
 
   pthread_mutex_unlock(&kitchen->mtx);
@@ -96,7 +95,7 @@ Result kitchen_init(Kitchen* kitchen, Vec* resources  // Vec<Resource>
       KitchenResource kitchen_resource;
       kitchen_resource.resource = resource;
       kitchen_resource.available = true;
-      kitchen_resource.dirtiness = 0;
+      atomic_init(&kitchen_resource.dirtiness, 0);
 
       Result result = vec_push(&kitchen->resources, &kitchen_resource);
 

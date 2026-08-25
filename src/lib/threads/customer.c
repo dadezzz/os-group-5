@@ -9,7 +9,6 @@
 #include "../result.h"
 #include "../rng.h"
 #include "../state/restaurant.h"
-#include "../timer.h"
 #include "../vec.h"
 #include "wrapper.h"
 
@@ -50,8 +49,8 @@ static Result customer_thread(void* void_customer) {
   Customer* customer = void_customer;
   fprintf(stderr, "customer %lu started\n", customer->tid);
 
-  int ticks_to_wait = rng_next_range(&customer->rng, 5, 25);
-  timer_wait(customer->restaurant->timer, ticks_to_wait);
+  unsigned int ticks_to_wait = rng_next_range(&customer->rng, 5, 25);
+  restaurant_time_wait(customer->restaurant, ticks_to_wait);
   pthread_mutex_lock(&customer->mtx);
   customer->wants_to_order = true;
   pthread_mutex_unlock(&customer->mtx);
@@ -60,7 +59,7 @@ static Result customer_thread(void* void_customer) {
   // Check patience every tick because waiters might modify it by entertaining
   // the customer.
   while (true) {
-    timer_wait(customer->restaurant->timer, 1);
+    restaurant_time_wait(customer->restaurant, ticks_to_wait);
 
     pthread_mutex_lock(&customer->mtx);
 

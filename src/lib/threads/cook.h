@@ -19,7 +19,6 @@ typedef struct Cook {
   pthread_mutex_t mtx;
   sem_t sem;
   Restaurant* restaurant;
-  atomic_bool is_waiting_timer;
 } Cook;
 
 Result cook_init(Cook* cook, Restaurant* restaurant);

@@ -3,7 +3,6 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-#include "../timer.h"
 #include "kitchen.h"
 #include "restaurant.h"
 
@@ -11,12 +10,10 @@ void sink_wash(Sink* sink, KitchenResource* resource) {
   atomic_fetch_add(&sink->waiting, 1);
   pthread_mutex_lock(&sink->mtx);
 
-  timer_wait(sink->restaurant->timer, resource->resource->clean_time);
+  restaurant_time_wait(sink->restaurant, resource->resource->clean_time);
   atomic_fetch_sub(&sink->waiting, 1);
 
-  pthread_mutex_lock(&sink->restaurant->kitchen.mtx);
-  resource->dirtiness = 0;
-  pthread_mutex_unlock(&sink->restaurant->kitchen.mtx);
+  atomic_store(&resource->dirtiness, 0);
 
   pthread_mutex_unlock(&sink->mtx);
 }
