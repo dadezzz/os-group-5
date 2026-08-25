@@ -9,8 +9,8 @@ all: build-debug
 CPPFLAGS += -MMD -MP
 # Set C standard to 23 and enable some stricter diagnostics.
 CFLAGS   += -std=gnu23 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
-# For now we don't need special linker flags.
-LDFLAGS  +=
+# Add libm for ceil and pow functions.
+LDFLAGS  += -lm
 
 # Include the header files generated with -MMD in $CPPFLAGS.
 -include $(DEPS)

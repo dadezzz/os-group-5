@@ -1,6 +1,7 @@
 #include "kitchen.h"
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stddef.h>
 
 #include "../data/dishes/requirements.h"
@@ -30,7 +31,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
       KitchenResource* kitchen_resource = vec_at(&kitchen->resources, k);
 
       if (kitchen_resource->resource == requirement->resource &&
-          kitchen_resource->available) {
+          atomic_load(&kitchen_resource->available)) {
         // Store a ref to the kitchen resource, so that we can modify its value
         // from inside acquired.
         result = vec_push(acquired, &kitchen_resource);
@@ -58,7 +59,7 @@ Result kitchen_get_resources(Kitchen* kitchen,
     for (size_t i = 0; i < acquired->length; ++i) {
       KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
       KitchenResource* kitchen_resource = *kitchen_resource_ref;
-      kitchen_resource->available = false;
+      atomic_store(&kitchen_resource->available, false);
     }
   }
 
@@ -66,15 +67,15 @@ Result kitchen_get_resources(Kitchen* kitchen,
   return result;
 }
 
-void kitchen_drop_resources(Kitchen* kitchen,
-                            Vec* acquired  // Vec<KitcherResource*>
+void kitchen_drop_resources_dirty(Kitchen* kitchen,
+                                  Vec* acquired  // Vec<KitcherResource*>
 ) {
   pthread_mutex_lock(&kitchen->mtx);
 
   for (size_t i = 0; i < acquired->length; i++) {
     KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
     KitchenResource* kitchen_resource = *kitchen_resource_ref;
-    kitchen_resource->available = true;
+    atomic_store(&kitchen_resource->available, true);
     atomic_fetch_add(&kitchen_resource->dirtiness, 1);
   }
 
@@ -94,7 +95,7 @@ Result kitchen_init(Kitchen* kitchen, Vec* resources  // Vec<Resource>
     for (int j = 0; j < resource->quantity; j++) {
       KitchenResource kitchen_resource;
       kitchen_resource.resource = resource;
-      kitchen_resource.available = true;
+      atomic_init(&kitchen_resource.available, true);
       atomic_init(&kitchen_resource.dirtiness, 0);
 
       Result result = vec_push(&kitchen->resources, &kitchen_resource);

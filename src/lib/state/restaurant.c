@@ -193,7 +193,7 @@ void restaurant_drop(Restaurant* restaurant) {
   queue_drop(&restaurant->customers, nullptr);
   fprintf(stderr, "customers dropped\n");
 
-  fprintf(stderr, "final score: %f\n", atomic_load(&restaurant->score));
+  fprintf(stderr, "final score: %d\n", atomic_load(&restaurant->score));
 
   sink_drop(&restaurant->sink);
   kitchen_drop(&restaurant->kitchen);
