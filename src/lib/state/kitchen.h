@@ -9,7 +9,7 @@
 
 typedef struct {
   Resource* resource;
-  bool available;
+  atomic_bool available;
   atomic_int dirtiness;
 } KitchenResource;
 
@@ -23,8 +23,8 @@ Result kitchen_get_resources(Kitchen* kitchen,
                              Vec* acquired       // Vec<KitchenResource*>
 );
 
-void kitchen_drop_resources(Kitchen* kitchen,
-                            Vec* acquired  // Vec<KitchenResource*>
+void kitchen_drop_resources_dirty(Kitchen* kitchen,
+                                  Vec* acquired  // Vec<KitchenResource*>
 );
 
 Result kitchen_init(Kitchen* kitchen, Vec* resources);

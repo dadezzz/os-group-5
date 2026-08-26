@@ -63,7 +63,7 @@ static void status_print(Config* config,
   }
 
   fprintf(stdout, "--- RESTAURANT STATUS ---\n");
-  fprintf(stdout, "Current score:   %f\n", atomic_load(&restaurant->score));
+  fprintf(stdout, "Current score:   %d\n", atomic_load(&restaurant->score));
   fprintf(stdout, "Customers:\n");
   fprintf(stdout, "--- currently in restaurant:   %d\n",
           current_customers_count);
@@ -85,7 +85,7 @@ static void status_print(Config* config,
           vec_at(&restaurant->kitchen.resources, i);
 
       fprintf(stdout, "--- %s:   %b\n", kitchen_resources->resource->name,
-              kitchen_resources->available);
+              atomic_load(&kitchen_resources->available));
     }
   }
 }
@@ -170,10 +170,7 @@ int main() {
     }
 
     if (sigusr1_get_raised()) {
-      fprintf(stderr, "handling sigusr1 signal\n");
-
       status_print(&config, &restaurant, true);
-
       // Set to false to avoid checking again on next loop.
       sigusr1_set_raised(false);
     }
@@ -184,8 +181,8 @@ int main() {
       next_status_at.tv_sec += PRINT_STATUS_INTERVAL;
     }
 
-    // Loop every tenth of a second.
-    usleep((unsigned int)1e5);
+    // Loop every hundredth of a second.
+    usleep((unsigned int)1e4);
   }
 
   // Cleanup.

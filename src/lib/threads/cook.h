@@ -15,7 +15,9 @@ typedef struct Cook {
   RNGState rng;
   pthread_t tid;
   FIFOQueue dish_tickets;  // FIFOQueue<DishTicket>
-  int queued_time;
+  // Use these for faster lookups, without the need to iterate the queue.
+  unsigned int queued_time;
+  unsigned int queued_price;
   pthread_mutex_t mtx;
   sem_t sem;
   Restaurant* restaurant;

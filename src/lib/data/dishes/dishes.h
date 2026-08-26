@@ -6,8 +6,8 @@
 
 typedef struct Dish {
   char* name;
-  int price;
-  int cook_time;
+  unsigned int price;
+  unsigned int cook_time;
   Vec requirements;  // Vec<Requirement>
 } Dish;
 
