@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# TODO: check that this ends up being the correct path during submission.
 source ./src/lib/result.sh
 
 POSITIVE_INT_REGEX="[1-9][0-9]*"
@@ -144,8 +143,8 @@ for arg in "$@" ; do
 done
 
 if ! file_exists_and_readable "$ENV_FILE" ; then
-    echo "ENV_FILE is invalid"
-    exit $RESULT_CONFIG_FILE_NOT_OPENED
+    echo "ENV_FILE doesn't exist"
+    exit $RESULT_CONFIG_FILE_NOT_FOUND
 fi
 
 # Read last line even if missing a newline.
@@ -229,7 +228,21 @@ while read -r line || [[ -n "$line" ]]; do
     esac
 done < "$ENV_FILE"
 
-# Use cli argument with preceence over the one in the env file.
+# Check that _ENV vars aren't null or empty.
+if test -z "$NUM_COOKS_ENV" || \
+   test -z "$NUM_WAITERS_ENV" || \
+   test -z "$MAX_CUSTOMERS_ENV" || \
+   test -z "$TOTAL_CUSTOMERS_ENV" || \
+   test -z "$MENU_FILE_ENV" || \
+   test -z "$RESOURCES_FILE_ENV" || \
+   test -z "$GAME_SPEED_ENV" || \
+   test -z "$RANDOM_SEED_ENV"; then
+     echo "One or more config parameters are missing"
+
+     exit $RESULT_CONFIG_INVALID_VALUE
+fi
+
+# Use cli argument with precedence over the one in the env file.
 export NUM_COOKS="${NUM_COOKS_ARG:-$NUM_COOKS_ENV}"
 export NUM_WAITERS="${NUM_WAITERS_ARG:-$NUM_WAITERS_ENV}"
 export MAX_CUSTOMERS="${MAX_CUSTOMERS_ARG:-$MAX_CUSTOMERS_ENV}"
@@ -239,18 +252,4 @@ export RESOURCES_FILE="${RESOURCES_FILE_ARG:-$RESOURCES_FILE_ENV}"
 export GAME_SPEED="${GAME_SPEED_ARG:-$GAME_SPEED_ENV}"
 export RANDOM_SEED="${RANDOM_SEED_ARG:-$RANDOM_SEED_ENV}"
 
-# Check that _ENV vars aren't null or empty.
-if test -z "$NUM_COOKS" || \
-   test -z "$NUM_WAITERS" || \
-   test -z "$MAX_CUSTOMERS" || \
-   test -z "$TOTAL_CUSTOMERS" || \
-   test -z "$MENU_FILE" || \
-   test -z "$RESOURCES_FILE" || \
-   test -z "$GAME_SPEED" || \
-   test -z "$RANDOM_SEED"; then
-     echo "One or more config parameters are missing"
-     exit $RESULT_CONFIG_INVALID_VALUE
-fi
-
-# TODO: also check the path of this in the final submission.
 exec ./build/restaurant

@@ -10,7 +10,7 @@ CPPFLAGS += -MMD -MP
 # Set C standard to 23 and enable some stricter diagnostics.
 CFLAGS   += -std=gnu23 -pedantic -Wall -Wcast-qual -Wconversion -Wextra -Wmissing-prototypes -Wnull-dereference -Wshadow
 # Add libm for ceil and pow functions.
-LDFLAGS  += -lm
+LDFLAGS  += -pthread -lm
 
 # Include the header files generated with -MMD in $CPPFLAGS.
 -include $(DEPS)
@@ -29,7 +29,8 @@ build-debug: build/compile_commands.json
 endif
 
 # Add optimization flags.
-build-release: CFLAGS += -O3 -s
+build-release: CFLAGS += -O3
+build-release: LDFLAGS += -s
 build-release: build/restaurant
 
 # Link the restaurant executable.
@@ -78,19 +79,27 @@ build/compile_flags.txt: ALWAYS
 
 # Clean the build/ and submission/ dirs.
 clean:
-	@rm -rf .cache/ build/ submission/
+	@rm -rf .cache/ build/ submission/ /tmp/restaurant.pid
 
 # Run ./bootstrap.sh
-#
-# TODO: read (optionally) args to pass from the ARGS variable.
 run:
-	./bootstrap.sh
+	./src/bootstrap.sh $(ARGS)
 
 # Copy files in a submission subdir with the layout that professors expect.
-submission: Makefile src/
+ALL_SOURCES = $(shell find src/ -type f)
+submission: easy.mk .env.example $(ALL_SOURCES)
 	@rm -rf submission/
-	@mkdir -p submission/code/
-	@cp -vr Makefile src/bootstrap.sh src/status.sh src/ submission/code/
+	@mkdir submission/
+	@cp -vr .env.example submission/.env
+	@cp -vr easy.mk submission/Makefile
+	@cp -vr src/status.sh submission/status.sh
+	@sed -i 's|src/lib/result.sh|code/lib/result.sh|' submission/status.sh
+	@cp -vr src/bootstrap.sh submission/bootstrap.sh
+	@sed -i 's|src/lib/result.sh|code/lib/result.sh|' submission/bootstrap.sh
+	@cp -vr src/ submission/code/ -r
+	@rm submission/code/bootstrap.sh
+	@rm submission/code/status.sh
+	# TODO
 	@# cp report.pdf submission/
 
 format: clang-format/fix
