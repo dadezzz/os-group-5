@@ -68,6 +68,12 @@ static Result customer_thread(void* void_customer) {
   while (true) {
     restaurant_time_wait(customer->restaurant, 1);
 
+    // Happens only when an error happens inside the loop in main. Otherwise
+    // restaurant_drop is called only when all the customers have already left.
+    if (restaurant_is_closing(customer->restaurant)) {
+      break;
+    }
+
     pthread_mutex_lock(&customer->mtx);
     ++customer->time_waiting;
 

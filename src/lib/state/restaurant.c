@@ -128,6 +128,10 @@ void restaurant_time_wait(Restaurant* restaurant, unsigned int units) {
 }
 
 Result restaurant_drop(Restaurant* restaurant) {
+  if(restaurant==nullptr){
+    return RESULT_OK;
+  }
+
   atomic_store(&restaurant->is_closing, true);
 
   Result result = RESULT_OK;

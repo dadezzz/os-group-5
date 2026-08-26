@@ -2,7 +2,6 @@
 #define CUSTOMER_H
 
 #include <pthread.h>
-#include <semaphore.h>
 
 #include "../result.h"
 #include "../rng.h"
@@ -12,7 +11,6 @@ typedef struct Customer {
   RNGState rng;
   pthread_t tid;
   pthread_mutex_t mtx;
-  sem_t* seats;
   Vec order_dishes;
   size_t dishes_served;
   int time_waiting;

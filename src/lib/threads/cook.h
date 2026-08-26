@@ -7,12 +7,10 @@
 
 #include "../fifo-queue.h"
 #include "../result.h"
-#include "../rng.h"
 #include "../state/dish-ticket.h"
 #include "../state/restaurant.h"
 
 typedef struct Cook {
-  RNGState rng;
   pthread_t tid;
   FIFOQueue dish_tickets;  // FIFOQueue<DishTicket>
   // Use these for faster lookups, without the need to iterate the queue.
