@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include "state/kitchen.h"
 #include "state/restaurant.h"
 #include "threads/cook.h"
 #include "vec.h"

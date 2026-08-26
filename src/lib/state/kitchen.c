@@ -1,7 +1,6 @@
 #include "kitchen.h"
 
 #include <math.h>
-#include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
 
