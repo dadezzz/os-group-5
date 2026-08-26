@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -37,7 +38,7 @@ static void timespec_add(struct timespec* t,
   t->tv_sec += sec;
   t->tv_nsec += nsec;
 
-  // Riporto se la somma sfora il miliardo di nanosecondi
+  // Carry over if the sum exceeds one billion nanoseconds
   if (t->tv_nsec >= 1000000000L) {
     t->tv_sec += 1;
     t->tv_nsec -= 1000000000L;
@@ -47,11 +48,15 @@ static void timespec_add(struct timespec* t,
 static void status_print(Config* config,
                          Restaurant* restaurant,
                          bool extended_print) {
+  pthread_mutex_lock(&restaurant->mtx);
+
   int current_customers_count = 0;
   int unserved_customers_count = 0;
   for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
        node = node->next) {
     Customer* customer = node->value;
+
+    pthread_mutex_lock(&customer->mtx);
 
     if (!customer->has_left) {
       current_customers_count++;
@@ -61,6 +66,8 @@ static void status_print(Config* config,
         customer->dishes_served < customer->order_dishes.length) {
       unserved_customers_count++;
     }
+
+    pthread_mutex_unlock(&customer->mtx);
   }
 
   fprintf(stdout, "\n=== RESTAURANT STATUS ===\n");
@@ -71,8 +78,8 @@ static void status_print(Config* config,
   fprintf(stdout, "--- left unserved:   %d\n", unserved_customers_count);
   fprintf(stdout, "--- progress (spawned / total):  %lu / %d\n",
           restaurant->customers.length, config->total_customers);
-  uint percentage =
-      ((uint)restaurant->customers.length * 100) / config->total_customers;
+  int percentage =
+      ((int)restaurant->customers.length * 100) / (int)config->total_customers;
   fprintf(stdout, "--- progress percentage:   %d%%\n", percentage);
 
   if (extended_print) {
@@ -80,7 +87,11 @@ static void status_print(Config* config,
     for (size_t i = 0; i < restaurant->cooks.length; i++) {
       Cook* cook = vec_at(&restaurant->cooks, i);
 
+      pthread_mutex_lock(&cook->mtx);
+
       fprintf(stdout, "--- cook %lu:   %lu\n", i, cook->dish_tickets.length);
+
+      pthread_mutex_unlock(&cook->mtx);
     }
 
     fprintf(stdout, "Current availability of kitchen resources:\n");
@@ -92,6 +103,8 @@ static void status_print(Config* config,
               atomic_load(&kitchen_resources->available));
     }
   }
+
+  pthread_mutex_unlock(&restaurant->mtx);
 }
 
 int main() {
@@ -99,51 +112,103 @@ int main() {
 
   Config config;
   result = config_load(&config);
+  if (result != RESULT_OK) {
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
+  }
 
   Vec resources;
-  if (result == RESULT_OK) {
-    vec_init(&resources, sizeof(Resource));
-    result = resources_load(config.resources_file, &resources);
+  vec_init(&resources, sizeof(Resource));
+  result = resources_load(config.resources_file, &resources);
+  if (result != RESULT_OK) {
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
   Vec dishes;
-  if (result == RESULT_OK) {
-    vec_init(&dishes, sizeof(Dish));
-    result = dishes_load(config.menu_file, &dishes, &resources);
+  vec_init(&dishes, sizeof(Dish));
+  result = dishes_load(config.menu_file, &dishes, &resources);
+  if (result != RESULT_OK) {
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
   Restaurant restaurant;
-  if (result == RESULT_OK) {
-    result = restaurant_init(&restaurant, &config, &resources, &dishes);
+  result = restaurant_init(&restaurant, &config, &resources, &dishes);
+  if (result != RESULT_OK) {
+    // Ignore this error and print the initial one.
+    restaurant_drop(&restaurant);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
-  if (result == RESULT_OK) {
-    int tmp = mkdir("/tmp", 0775);
-    if (tmp != 0 && errno != EEXIST) {
-      result = RESULT_MKDIR_FAILED;
-    }
+  int tmp = mkdir("/tmp", 0775);
+  if (tmp != 0 && errno != EEXIST) {
+    result = RESULT_MKDIR_FAILED;
+    // Ignore this error and print the initial one.
+    restaurant_drop(&restaurant);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
-  if (result == RESULT_OK) {
-    FILE* file = fopen("/tmp/restaurant.pid", "w");
-    if (file == nullptr) {
-      result = RESULT_FILE_OPENING_FAILED;
-    } else {
-      fprintf(file, "%d\n", getpid());
-      fclose(file);
-    }
+  FILE* file = fopen("/tmp/restaurant.pid", "w");
+  if (file == nullptr) {
+    result = RESULT_FILE_OPENING_FAILED;
+    // Ignore this error and print the initial one.
+    restaurant_drop(&restaurant);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
-  if (result == RESULT_OK) {
-    result = sigusr1_register_handler();
+  fprintf(file, "%d\n", getpid());
+  fclose(file);
+
+  result = sigusr1_register_handler();
+  if (result != RESULT_OK) {
+    // Ignore this error and print the initial one.
+    restaurant_drop(&restaurant);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
-  if (result == RESULT_OK) {
-    result = restaurant_spawn_cooks(&restaurant, config.num_cooks);
+  result = restaurant_spawn_cooks(&restaurant, config.num_cooks);
+  if (result != RESULT_OK) {
+    // Ignore this error and print the initial one.
+    restaurant_drop(&restaurant);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
-  if (result == RESULT_OK) {
-    result = restaurant_spawn_waiters(&restaurant, config.num_waiters);
+  result = restaurant_spawn_waiters(&restaurant, config.num_waiters);
+  if (result != RESULT_OK) {
+    // Ignore this error and print the initial one.
+    restaurant_drop(&restaurant);
+    vec_drop(&dishes, dish_drop);
+    vec_drop(&resources, resource_drop);
+    config_drop(&config);
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+    return (int)result;
   }
 
   struct timespec now;
@@ -155,16 +220,21 @@ int main() {
   struct timespec next_customer_at = now;
   timespec_add(&next_customer_at, next_customer_ticks, config.game_speed);
 
-  while (result == RESULT_OK && !restaurant_has_finished(&restaurant)) {
+  while (!restaurant_has_finished(&restaurant)) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     if (timespec_difference(now, next_customer_at) > 0 &&
         spawned_customers < config.total_customers) {
       result = restaurant_spawn_customer(&restaurant);
 
-      if (result == RESULT_RESTAURANT_FULL) {
-        // Do nothing and retry on the next cycle.
-        result = RESULT_OK;
+      if (result != RESULT_RESTAURANT_FULL && result != RESULT_OK) {
+        // Ignore this error and print the initial one.
+        restaurant_drop(&restaurant);
+        vec_drop(&dishes, dish_drop);
+        vec_drop(&resources, resource_drop);
+        config_drop(&config);
+        fprintf(stderr, "Something went wrong: %d\n", (int)result);
+        return (int)result;
       } else if (result == RESULT_OK) {
         ++spawned_customers;
         next_customer_ticks = rng_next_range(&restaurant.rng, 0, 50);
@@ -190,8 +260,10 @@ int main() {
   }
 
   // Cleanup.
-
   result = restaurant_drop(&restaurant);
+  if (result != RESULT_OK) {
+    fprintf(stderr, "Something went wrong: %d\n", (int)result);
+  }
   vec_drop(&dishes, dish_drop);
   vec_drop(&resources, resource_drop);
   config_drop(&config);

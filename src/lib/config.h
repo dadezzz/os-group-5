@@ -8,8 +8,8 @@ typedef struct Config {
   unsigned int num_waiters;
   unsigned int max_customers;
   unsigned int total_customers;
-  const char* menu_file;
-  const char* resources_file;
+  char* menu_file;
+  char* resources_file;
   double game_speed;
   unsigned int random_seed;
 } Config;

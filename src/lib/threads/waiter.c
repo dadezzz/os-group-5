@@ -92,9 +92,7 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
     Dish* dish = vec_at(&customer->order_dishes, i);
 
     DishTicket dish_ticket;
-    dish_ticket.dish = dish;
-    dish_ticket.customer = customer;
-    dish_ticket.waiter = waiter;
+    dish_ticket_init(&dish_ticket, dish, customer, waiter);
 
     Cook* min_cook = nullptr;
     double min_cook_score = DBL_MAX;

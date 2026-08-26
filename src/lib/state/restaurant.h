@@ -2,7 +2,6 @@
 #define RESTAURANT_H
 
 #include <pthread.h>
-#include <semaphore.h>
 #include <stdatomic.h>
 #include <stddef.h>
 

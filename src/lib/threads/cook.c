@@ -171,7 +171,6 @@ static Result cook_thread(void* void_cook) {
 
 Result cook_init(Cook* cook, Restaurant* restaurant) {
   cook->restaurant = restaurant;
-  rng_init_thread(&restaurant->rng, &cook->rng);
   cook->queued_time = 0;
   cook->queued_price = 0;
   queue_init(&cook->dish_tickets, sizeof(DishTicket));
