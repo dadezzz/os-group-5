@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -62,21 +63,24 @@ static void status_print(Config* config,
     }
   }
 
-  fprintf(stdout, "--- RESTAURANT STATUS ---\n");
+  fprintf(stdout, "\n=== RESTAURANT STATUS ===\n");
   fprintf(stdout, "Current score:   %d\n", atomic_load(&restaurant->score));
   fprintf(stdout, "Customers:\n");
   fprintf(stdout, "--- currently in restaurant:   %d\n",
           current_customers_count);
   fprintf(stdout, "--- left unserved:   %d\n", unserved_customers_count);
   fprintf(stdout, "--- progress (spawned / total):  %lu / %d\n",
-          restaurant->customers.lenght, config->total_customers);
+          restaurant->customers.length, config->total_customers);
+  uint percentage =
+      ((uint)restaurant->customers.length * 100) / config->total_customers;
+  fprintf(stdout, "--- progress percentage:   %d%%\n", percentage);
 
   if (extended_print) {
     fprintf(stdout, "Lenght of cooks' dishes queues:\n");
     for (size_t i = 0; i < restaurant->cooks.length; i++) {
       Cook* cook = vec_at(&restaurant->cooks, i);
 
-      fprintf(stdout, "--- cook %lu:   %lu\n", i, cook->dish_tickets.lenght);
+      fprintf(stdout, "--- cook %lu:   %lu\n", i, cook->dish_tickets.length);
     }
 
     fprintf(stdout, "Current availability of kitchen resources:\n");
@@ -187,7 +191,7 @@ int main() {
 
   // Cleanup.
 
-  restaurant_drop(&restaurant);
+  result = restaurant_drop(&restaurant);
   vec_drop(&dishes, dish_drop);
   vec_drop(&resources, resource_drop);
   config_drop(&config);

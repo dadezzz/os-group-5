@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "result.h"
 #include "vec.h"
 
 // PERF: the use of vec even when dest is nullptr is for simplicity but could
@@ -14,12 +15,18 @@ size_t read_str_until_char(const char* src, char** dest, char pattern) {
   vec_init(&dest_vec, sizeof(char));
 
   while (src[dest_vec.length] != pattern && src[dest_vec.length] != '\0') {
-    vec_push(&dest_vec, &src[dest_vec.length]);
+    Result result = vec_push(&dest_vec, &src[dest_vec.length]);
+    if (result != RESULT_OK) {
+      return 0;
+    }
   }
 
   // Push a null terminator at the end to make dest a valid C string.
   char terminator = '\0';
-  vec_push(&dest_vec, &terminator);
+  Result result = vec_push(&dest_vec, &terminator);
+  if (result != RESULT_OK) {
+    return 0;
+  }
 
   // Avoid null pointer dereference.
   if (dest != nullptr) {
@@ -37,12 +44,18 @@ size_t read_file_until_char(FILE* file, char** dest, char pattern) {
 
   for (int c = getc(file); c != pattern && c != EOF; c = getc(file)) {
     char cc = (char)c;
-    vec_push(&dest_vec, &cc);
+    Result result = vec_push(&dest_vec, &cc);
+    if (result != RESULT_OK) {
+      return 0;
+    }
   }
 
   // Push a null terminator at the end to make dest a valid C string.
   char terminator = '\0';
-  vec_push(&dest_vec, &terminator);
+  Result result = vec_push(&dest_vec, &terminator);
+  if (result != RESULT_OK) {
+    return 0;
+  }
 
   // Avoid null pointer dereference.
   if (dest != nullptr) {

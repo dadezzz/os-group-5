@@ -1,9 +1,6 @@
 #ifndef RESULT_H
 #define RESULT_H
 
-// TODO: before submission check that all these error codes are in sync with
-// those in the result.sh file.
-
 typedef enum [[nodiscard]] {
   RESULT_OK,
   RESULT_CONFIG_INVALID_PARAMETER,

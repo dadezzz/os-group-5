@@ -49,6 +49,6 @@ bool restaurant_has_finished(Restaurant* restaurant);
 
 void restaurant_time_wait(Restaurant* restaurant, unsigned int units);
 
-void restaurant_drop(Restaurant* restaurant);
+Result restaurant_drop(Restaurant* restaurant);
 
 #endif

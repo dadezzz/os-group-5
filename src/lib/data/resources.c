@@ -63,7 +63,7 @@ static Result parse_file(FILE* file, Vec* resources  // Vec<Resource>
     // At least 5 bytes required to make a valid 3 field CSV line.
     if (line_bytes < 5) {
       free(line_str);
-      return RESULT_DISHES_FILE_INVALID;
+      return RESULT_RESOURCES_FILE_INVALID;
     }
 
     Resource new_resource = {};
