@@ -9,7 +9,6 @@
 
 #include "../fifo-queue.h"
 #include "../result.h"
-#include "../rng.h"
 #include "../state/dish-ticket.h"
 #include "../state/kitchen.h"
 #include "../state/restaurant.h"

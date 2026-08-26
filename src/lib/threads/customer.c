@@ -4,7 +4,6 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
-#include <stdio.h>
 
 #include "../data/dishes/dishes.h"
 #include "../result.h"
@@ -12,6 +11,10 @@
 #include "../state/restaurant.h"
 #include "../vec.h"
 #include "wrapper.h"
+
+#define ORDER_MAX_DISHES 10
+#define MAX_ADDITIONAL_PATIENCE 100  // in percentual
+#define WANTS_TO_ORDER_MAX_TICKS 10
 
 void customer_serve(Customer* customer) {
   pthread_mutex_lock(&customer->mtx);
@@ -57,7 +60,8 @@ static void customer_leave(Customer* customer) {
 static Result customer_thread(void* void_customer) {
   Customer* customer = void_customer;
 
-  unsigned int ticks_to_wait = rng_next_range(&customer->rng, 5, 25);
+  unsigned int ticks_to_wait =
+      rng_next_range(&customer->rng, 0, WANTS_TO_ORDER_MAX_TICKS);
   restaurant_time_wait(customer->restaurant, ticks_to_wait);
   pthread_mutex_lock(&customer->mtx);
   customer->wants_to_order = true;
@@ -100,7 +104,7 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
 
   customer->dishes_served = 0;
   vec_init(&customer->order_dishes, sizeof(Dish));
-  int n_dishes = rng_next_range(&customer->rng, 1, 10);
+  int n_dishes = rng_next_range(&customer->rng, 1, ORDER_MAX_DISHES);
   int cook_time = 0;
   for (int i = 0; i < n_dishes; i++) {
     Dish* dish = vec_at(
@@ -114,7 +118,8 @@ Result customer_init(Customer* customer, Restaurant* restaurant) {
     }
   }
 
-  customer->patience = cook_time + rng_next_range(&customer->rng, 1, 100);
+  customer->patience =
+      cook_time + rng_next_range(&customer->rng, 1, MAX_ADDITIONAL_PATIENCE);
 
   pthread_mutex_init(&customer->mtx, nullptr);
   return thread_init(&customer->tid, customer_thread, customer);

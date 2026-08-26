@@ -19,7 +19,8 @@
 #include "customer.h"
 #include "wrapper.h"
 
-static const double ENTERTAIN_PROBABILITY = 0.05;
+#define ENTERTAIN_PROBABILITY 0.05
+#define MAX_CUSTOMER_PATIENCE_CHANGE 20  // In percentual
 
 static void waiter_entertain_customer(Waiter* waiter) {
   pthread_mutex_lock(&waiter->restaurant->mtx);
@@ -33,10 +34,9 @@ static void waiter_entertain_customer(Waiter* waiter) {
     pthread_mutex_lock(&customer->mtx);
 
     double customer_time_left = customer->patience - customer->time_waiting;
-    bool should_entertain = !customer->has_left &&
-                            (selected_customer == nullptr ||
-                             selected_customer_time_left > customer_time_left);
-    if (should_entertain) {
+    bool should_entertain = selected_customer == nullptr ||
+                            selected_customer_time_left > customer_time_left;
+    if (!customer->has_left && should_entertain) {
       selected_customer = customer;
       selected_customer_time_left = customer_time_left;
     }
@@ -52,8 +52,9 @@ static void waiter_entertain_customer(Waiter* waiter) {
 
   pthread_mutex_lock(&selected_customer->mtx);
   selected_customer->patience +=
-      selected_customer->patience *
-      ((double)rng_next_range(&waiter->rng, 0, 20) - 10) / 100.0;
+      selected_customer->patience / 100 *
+      (rng_next_range(&waiter->rng, 0, MAX_CUSTOMER_PATIENCE_CHANGE) -
+       (MAX_CUSTOMER_PATIENCE_CHANGE / 2.0));
   pthread_mutex_unlock(&selected_customer->mtx);
 }
 
@@ -92,7 +93,9 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
     Dish* dish = vec_at(&customer->order_dishes, i);
 
     DishTicket dish_ticket;
-    dish_ticket_init(&dish_ticket, dish, customer, waiter);
+    dish_ticket.dish = dish;
+    dish_ticket.customer = customer;
+    dish_ticket.waiter = waiter;
 
     Cook* min_cook = nullptr;
     double min_cook_score = DBL_MAX;
@@ -101,17 +104,31 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
       Cook* cook = vec_at(&waiter->restaurant->cooks, c);
 
       pthread_mutex_lock(&cook->mtx);
-      double cook_finish_time = cook->queued_time + dish->cook_time;
-      double urgency = total_price / fmax(customer_time_left, 1.0);
-      double cook_score = cook_finish_time * urgency;
+      double queued_time = cook->queued_time;
+      double queued_price = cook->queued_price;
       pthread_mutex_unlock(&cook->mtx);
+
+      // Share of the customer's patience budget burnt waiting for this cook,
+      // weighted by what the order is worth.
+      double cook_finish_time = queued_time + dish->cook_time;
+      double own_cost =
+          total_price * cook_finish_time / fmax(customer_time_left, 1.0);
+
+      // This dish delays everything already queued here by cook_time;
+      // queued_price / queued_time is that queue's value per unit of time.
+      // Divide by 2 because the dish might still be completed at the end of the
+      // queue and so we take the average.
+      double others_cost =
+          dish->cook_time * queued_price / (fmax(queued_time, 1.0) * 2);
 
       // Further penalize cooks where the finish time is already over the
       // client's limit. But schedule them anyway since we might get lucky
       // with the entertainment.
       if (cook_finish_time > customer_time_left) {
-        cook_score *= 2;
+        own_cost *= 2;
       }
+
+      double cook_score = own_cost + others_cost;
 
       if (cook_score < min_cook_score) {
         min_cook = cook;
