@@ -4,7 +4,6 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
-#include <stdio.h>
 
 #include "../data/dishes/dishes.h"
 #include "../result.h"
@@ -54,7 +53,6 @@ static void customer_leave(Customer* customer) {
   }
 
   --customer->restaurant->present_customers;
-  fprintf(stderr, "customer left score: %d\n", score);
   customer->restaurant->score += score;
   pthread_mutex_unlock(&customer->restaurant->mtx);
 }

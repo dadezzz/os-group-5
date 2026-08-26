@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "../config.h"
@@ -88,7 +89,7 @@ Result restaurant_spawn_customer(Restaurant* restaurant) {
     return RESULT_RESTAURANT_FULL;
   }
 
-  Result result = queue_push(&restaurant->customers, nullptr);
+  Result result = queue_push_last(&restaurant->customers, nullptr);
 
   if (result == RESULT_OK) {
     ++restaurant->present_customers;
@@ -138,7 +139,7 @@ Result restaurant_try_drop_first_customer(Restaurant* restaurant) {
   // Check dishes_served, otherwise waiters might write to freed memory.
   if (customer->has_left &&
       customer->dishes_served == customer->order_dishes.length) {
-    queue_pop(&restaurant->customers);
+    queue_pop_first(&restaurant->customers);
     pthread_mutex_unlock(&customer->mtx);
     result = customer_drop(customer);
     free(customer);

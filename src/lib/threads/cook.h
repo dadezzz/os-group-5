@@ -16,11 +16,6 @@ typedef struct Cook {
   // Use these for faster lookups, without the need to iterate the queue.
   unsigned int queued_time;
   unsigned int queued_price;
-  // Used to select what to cook. When receiving a new order, the cook tries to
-  // loop over the queue to find something with immediately available resource.
-  // If it can't find one, then it falls back to waiting for resources to
-  // complete the plate of the customer that has been waiting the most.
-  atomic_bool wait_first_in_queue;
   pthread_mutex_t mtx;
   sem_t sem;
   Restaurant* restaurant;

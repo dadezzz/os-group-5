@@ -1,9 +1,11 @@
 #include "status.h"
 
+#include <pthread.h>
 #include <stdio.h>
 
 #include "state/restaurant.h"
 #include "threads/cook.h"
+#include "vec.h"
 
 void status_print(Restaurant* restaurant, bool extended_print) {
   pthread_mutex_lock(&restaurant->mtx);

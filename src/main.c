@@ -1,11 +1,9 @@
 #include <errno.h>
-#include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "lib/config.h"
@@ -66,6 +64,7 @@ static Result main_loop(Restaurant* restaurant) {
 
     // Loop every hundredth of a second (for game speed = 1).
     usleep((unsigned int)(1e4 / restaurant->config->game_speed));
+    // restaurant_time_wait(restaurant, 1);
   }
 
   return result;
