@@ -35,7 +35,6 @@ void* vec_at(Vec* vec, size_t i) {
   return vec->items + i * vec->item_size;
 }
 
-// TODO: handle results from vec_push.
 Result vec_push(Vec* vec, const void* item) {
   Result result = vec_reserve(vec, vec->length + 1);
   if (result != RESULT_OK) {

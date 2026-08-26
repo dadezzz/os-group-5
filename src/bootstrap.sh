@@ -14,8 +14,8 @@ function is_positive_float {
     [[ "$1" =~ ^[0-9]*(\.[0-9]+)?$ ]] && [[ "$1" =~ [1-9] ]]
 }
 
-function file_exists {
-    [[ -n "$1" ]] && [[ -f "$1" ]]
+function file_exists_and_readable {
+    [[ -n "$1" ]] && [[ -f "$1" ]] && [[ -r "$1" ]]
 }
 
 MENU_CSV_REQUIREMENT_REGEX="[^,]+(:$POSITIVE_INT_REGEX)?"
@@ -75,64 +75,76 @@ for arg in "$@" ; do
         --num-cooks=*)
             NUM_COOKS_ARG="${arg#*=}"
             if ! is_positive_int "$NUM_COOKS_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         --num-waiters=*)
             NUM_WAITERS_ARG="${arg#*=}"
             if ! is_positive_int "$NUM_WAITERS_ARG"; then
+                echo "$arg is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         --max-customers=*)
             MAX_CUSTOMERS_ARG="${arg#*=}"
             if ! is_positive_int "$MAX_CUSTOMERS_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         --total-customers=*)
             TOTAL_CUSTOMERS_ARG="${arg#*=}"
             if ! is_positive_int "$TOTAL_CUSTOMERS_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         --menu-file=*)
             MENU_FILE_ARG="${arg#*=}"
-            if ! file_exists "$MENU_FILE_ARG" ; then
+            if ! file_exists_and_readable "$MENU_FILE_ARG" ; then
+                echo "$arg doesn't exists or it's not readable"
                 exit $RESULT_DISHES_FILE_NOT_OPENED
             fi
             if ! menu_file_valid "$MENU_FILE_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_DISHES_FILE_INVALID
             fi
             ;;
         --resources-file=*)
             RESOURCES_FILE_ARG="${arg#*=}"
-            if ! file_exists "$RESOURCES_FILE_ARG" ; then
+            if ! file_exists_and_readable "$RESOURCES_FILE_ARG" ; then
+                echo "$arg doesn't exists or it's not readable"
                 exit $RESULT_RESOURCES_FILE_NOT_OPENED
             fi
             if ! resources_file_valid "$RESOURCES_FILE_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_RESOURCES_FILE_INVALID
             fi
             ;;
         --game-speed=*)
             GAME_SPEED_ARG="${arg#*=}"
             if ! is_positive_float "$GAME_SPEED_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         --random-seed=*)
             RANDOM_SEED_ARG="${arg#*=}"
             if ! is_positive_int "$RANDOM_SEED_ARG" ; then
+                echo "$arg is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         *)
+            echo "$arg is invalid"
             exit $RESULT_CONFIG_INVALID_PARAMETER
             ;;
     esac
 done
 
-if ! file_exists "$ENV_FILE" ; then
+if ! file_exists_and_readable "$ENV_FILE" ; then
+    echo "ENV_FILE is invalid"
     exit $RESULT_CONFIG_FILE_NOT_OPENED
 fi
 
@@ -147,66 +159,75 @@ while read -r line || [[ -n "$line" ]]; do
         NUM_COOKS=*)
             NUM_COOKS_ENV="${line#*=}"
             if ! is_positive_int "$NUM_COOKS_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         NUM_WAITERS=*)
             NUM_WAITERS_ENV="${line#*=}"
             if ! is_positive_int "$NUM_WAITERS_ENV"; then
+                echo "$line is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         MAX_CUSTOMERS=*)
             MAX_CUSTOMERS_ENV="${line#*=}"
             if ! is_positive_int "$MAX_CUSTOMERS_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         TOTAL_CUSTOMERS=*)
             TOTAL_CUSTOMERS_ENV="${line#*=}"
             if ! is_positive_int "$TOTAL_CUSTOMERS_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         MENU_FILE=*)
             MENU_FILE_ENV="${line#*=}"
-            if ! file_exists "$MENU_FILE_ENV" ; then
+            if ! file_exists_and_readable "$MENU_FILE_ENV" ; then
+                echo "$line doesn't exists or it's not readable"
                 exit $RESULT_DISHES_FILE_NOT_OPENED
             fi
             if ! menu_file_valid "$MENU_FILE_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_DISHES_FILE_INVALID
             fi
             ;;
         RESOURCES_FILE=*)
             RESOURCES_FILE_ENV="${line#*=}"
-            if ! file_exists "$RESOURCES_FILE_ENV" ; then
+            if ! file_exists_and_readable "$RESOURCES_FILE_ENV" ; then
+                echo "$line doesn't exists or it's not readable"
                 exit $RESULT_RESOURCES_FILE_NOT_OPENED
             fi
             if ! resources_file_valid "$RESOURCES_FILE_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_RESOURCES_FILE_INVALID
             fi
             ;;
         GAME_SPEED=*)
             GAME_SPEED_ENV="${line#*=}"
             if ! is_positive_float "$GAME_SPEED_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         RANDOM_SEED=*)
             RANDOM_SEED_ENV="${line#*=}"
             if ! is_positive_int "$RANDOM_SEED_ENV" ; then
+                echo "$line is invalid"
                 exit $RESULT_CONFIG_INVALID_VALUE
             fi
             ;;
         \#*) # Allow comments in env file.
             ;;
         *)
+            echo "$line is invalid"
             exit $RESULT_CONFIG_INVALID_PARAMETER
             ;;
     esac
 done < "$ENV_FILE"
-
-# TODO: check that _ENV vars aren't empty.
 
 # Use cli argument with preceence over the one in the env file.
 export NUM_COOKS="${NUM_COOKS_ARG:-$NUM_COOKS_ENV}"
@@ -217,6 +238,19 @@ export MENU_FILE="${MENU_FILE_ARG:-$MENU_FILE_ENV}"
 export RESOURCES_FILE="${RESOURCES_FILE_ARG:-$RESOURCES_FILE_ENV}"
 export GAME_SPEED="${GAME_SPEED_ARG:-$GAME_SPEED_ENV}"
 export RANDOM_SEED="${RANDOM_SEED_ARG:-$RANDOM_SEED_ENV}"
+
+# Check that _ENV vars aren't null or empty.
+if test -z "$NUM_COOKS" || \
+   test -z "$NUM_WAITERS" || \
+   test -z "$MAX_CUSTOMERS" || \
+   test -z "$TOTAL_CUSTOMERS" || \
+   test -z "$MENU_FILE" || \
+   test -z "$RESOURCES_FILE" || \
+   test -z "$GAME_SPEED" || \
+   test -z "$RANDOM_SEED"; then
+     echo "One or more config parameters are missing"
+     exit $RESULT_CONFIG_INVALID_VALUE
+fi
 
 # TODO: also check the path of this in the final submission.
 exec ./build/restaurant

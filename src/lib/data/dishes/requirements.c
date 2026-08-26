@@ -9,8 +9,6 @@
 #include "../../vec.h"
 #include "../resources.h"
 
-// TODO: deduplicate requirement if it points to the same resource.
-
 static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement,
                                 Vec* resources  // Vec<Resource>
@@ -97,9 +95,22 @@ Result requirements_load(const char* requirements_str,
       return result;
     }
 
-    result = vec_push(requirements, &new_requirement);
-    if (result != RESULT_OK) {
-      return result;
+    // Check for already present requirement, if yes add quantity
+    bool already_pushed = false;
+    for (size_t i = 0; i < requirements->length; i++) {
+      Requirement* requirement = vec_at(requirements, i);
+      if (requirement->resource == new_requirement.resource) {
+        already_pushed = true;
+        requirement->quantity += new_requirement.quantity;
+        break;
+      }
+    }
+
+    if (!already_pushed) {
+      result = vec_push(requirements, &new_requirement);
+      if (result != RESULT_OK) {
+        return result;
+      }
     }
   }
 

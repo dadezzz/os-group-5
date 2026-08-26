@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 PID_PATH=/tmp/restaurant.pid
 

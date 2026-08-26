@@ -34,15 +34,10 @@ static int customer_order_calculate_score(Customer* customer) {
   if (customer->order_dishes.length == customer->dishes_served) {
     score = (int)ceil(total_price *
                       (1 - (customer->time_waiting / customer->patience)));
-    fprintf(stderr, "customer %lu left with complete order, delta: %d\n",
-            customer->tid, score);
   } else {
     score =
         -1 * (int)ceil(total_price * log2(1 + (customer->patience /
                                                (1 + customer->dishes_served))));
-    fprintf(stderr,
-            "customer %lu sadly left with incomplete order, delta: %d\n",
-            customer->tid, score);
   }
 
   return score;
@@ -67,7 +62,6 @@ static Result customer_thread(void* void_customer) {
   pthread_mutex_lock(&customer->mtx);
   customer->wants_to_order = true;
   pthread_mutex_unlock(&customer->mtx);
-  fprintf(stderr, "customer %lu wants to order\n", customer->tid);
 
   // Check patience every tick because waiters might modify it by entertaining
   // the customer.

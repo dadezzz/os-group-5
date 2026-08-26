@@ -127,7 +127,7 @@ void restaurant_time_wait(Restaurant* restaurant, unsigned int units) {
   usleep((unsigned int)(1e6 * units / restaurant->config->game_speed));
 }
 
-void restaurant_drop(Restaurant* restaurant) {
+Result restaurant_drop(Restaurant* restaurant) {
   atomic_store(&restaurant->is_closing, true);
 
   Result result = RESULT_OK;
@@ -142,8 +142,6 @@ void restaurant_drop(Restaurant* restaurant) {
   }
   vec_drop(&restaurant->cooks, nullptr);
 
-  fprintf(stderr, "cooks dropped\n");
-
   for (size_t i = 0; i < restaurant->waiters.length; ++i) {
     Result local_result = waiter_drop(vec_at(&restaurant->waiters, i));
     if (result == RESULT_OK) {
@@ -151,7 +149,6 @@ void restaurant_drop(Restaurant* restaurant) {
     }
   }
   vec_drop(&restaurant->waiters, nullptr);
-  fprintf(stderr, "waiters dropped\n");
 
   for (FIFOQueueNode* node = restaurant->customers.head; node != nullptr;
        node = node->next) {
@@ -163,11 +160,10 @@ void restaurant_drop(Restaurant* restaurant) {
     }
   }
   queue_drop(&restaurant->customers, nullptr);
-  fprintf(stderr, "customers dropped\n");
-
-  fprintf(stderr, "final score: %d\n", atomic_load(&restaurant->score));
 
   sink_drop(&restaurant->sink);
   kitchen_drop(&restaurant->kitchen);
   pthread_mutex_destroy(&restaurant->mtx);
+
+  return result;
 }

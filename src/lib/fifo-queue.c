@@ -7,7 +7,7 @@
 
 void queue_init(FIFOQueue* queue, size_t value_size) {
   queue->value_size = value_size;
-  queue->lenght = 0;
+  queue->length = 0;
   queue->head = nullptr;
   queue->tail = nullptr;
 }
@@ -48,7 +48,7 @@ void* queue_remove_at(FIFOQueue* queue, FIFOQueueNode* node) {
 
   free(current);
 
-  queue->lenght--;
+  queue->length--;
 
   return value;
 }
@@ -79,7 +79,7 @@ Result queue_push(FIFOQueue* queue, const void* value) {
   }
 
   queue->tail = new_node;
-  queue->lenght++;
+  queue->length++;
 
   return RESULT_OK;
 }
@@ -101,7 +101,7 @@ Result queue_push_allocated(FIFOQueue* queue, void* value) {
   }
 
   queue->tail = new_node;
-  queue->lenght++;
+  queue->length++;
 
   return RESULT_OK;
 }
@@ -121,7 +121,7 @@ void* queue_pop(FIFOQueue* queue) {
   }
 
   free(node);
-  queue->lenght--;
+  queue->length--;
 
   return value;
 }
