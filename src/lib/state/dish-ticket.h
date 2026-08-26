@@ -15,9 +15,4 @@ typedef struct {
   Waiter* waiter;
 } DishTicket;
 
-void dish_ticket_init(DishTicket* dish_ticket,
-                      Dish* dish,
-                      Customer* customer,
-                      Waiter* waiter);
-
 #endif
