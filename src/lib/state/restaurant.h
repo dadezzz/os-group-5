@@ -15,13 +15,15 @@
 
 typedef struct Restaurant {
   Config* config;
-  atomic_int score;
+  int score;
   pthread_mutex_t mtx;
   RNGState rng;
   // Has to be a queue because we have references to customer that left in
   // DishTicket and we cannot drop or move them until the program ends.
   FIFOQueue customers;  // FIFOQueue<Customer>
+  unsigned int spawned_customers;
   unsigned int present_customers;
+  unsigned int left_unserved_customers;
   Vec waiters;  // Vec<Waiter>
   Vec cooks;    // Vec<Cook>
   atomic_bool is_closing;
@@ -47,6 +49,8 @@ bool restaurant_is_closing(Restaurant* restaurant);
 bool restaurant_has_finished(Restaurant* restaurant);
 
 void restaurant_time_wait(Restaurant* restaurant, unsigned int units);
+
+Result restaurant_try_drop_first_customer(Restaurant* restaurant);
 
 Result restaurant_drop(Restaurant* restaurant);
 

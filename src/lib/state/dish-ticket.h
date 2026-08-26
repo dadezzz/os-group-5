@@ -9,7 +9,7 @@
 // Forward declare these to avoid circular header dependencies.
 typedef struct Waiter Waiter;
 
-typedef struct {
+typedef struct DishTicket{
   Dish* dish;
   Customer* customer;
   Waiter* waiter;

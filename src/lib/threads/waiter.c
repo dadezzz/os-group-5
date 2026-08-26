@@ -19,7 +19,7 @@
 #include "customer.h"
 #include "wrapper.h"
 
-#define ENTERTAIN_PROBABILITY 0.05
+#define ENTERTAIN_PROBABILITY 0.2
 #define MAX_CUSTOMER_PATIENCE_CHANGE 20  // In percentual
 
 static void waiter_entertain_customer(Waiter* waiter) {
@@ -104,8 +104,8 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
       Cook* cook = vec_at(&waiter->restaurant->cooks, c);
 
       pthread_mutex_lock(&cook->mtx);
-      double queued_time = cook->queued_time;
-      double queued_price = cook->queued_price;
+      unsigned int queued_time = cook->queued_time;
+      unsigned int queued_price = cook->queued_price;
       pthread_mutex_unlock(&cook->mtx);
 
       // Share of the customer's patience budget burnt waiting for this cook,
@@ -119,7 +119,7 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
       // Divide by 2 because the dish might still be completed at the end of the
       // queue and so we take the average.
       double others_cost =
-          dish->cook_time * queued_price / (fmax(queued_time, 1.0) * 2);
+          dish->cook_time * queued_price / fmax(queued_time, 1.0);
 
       // Further penalize cooks where the finish time is already over the
       // client's limit. But schedule them anyway since we might get lucky
@@ -155,7 +155,7 @@ static Result waiter_thread(void* void_waiter) {
       }
 
       pthread_mutex_lock(&waiter->mtx);
-      DishTicket* dish_ticket = queue_pop(&waiter->ready_dish_tickets);
+      DishTicket* dish_ticket = queue_pop_first(&waiter->ready_dish_tickets);
       pthread_mutex_unlock(&waiter->mtx);
 
       if (dish_ticket != nullptr) {
@@ -205,7 +205,7 @@ Result waiter_init(Waiter* waiter, Restaurant* restaurant) {
 Result waiter_assign(Waiter* waiter, DishTicket* dish_ticket) {
   pthread_mutex_lock(&waiter->mtx);
   Result result =
-      queue_push_allocated(&waiter->ready_dish_tickets, dish_ticket);
+      queue_push_last_allocated(&waiter->ready_dish_tickets, dish_ticket);
   pthread_mutex_unlock(&waiter->mtx);
 
   if (result == RESULT_OK) {
