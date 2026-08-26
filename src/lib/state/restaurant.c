@@ -128,7 +128,7 @@ void restaurant_time_wait(Restaurant* restaurant, unsigned int units) {
 }
 
 Result restaurant_drop(Restaurant* restaurant) {
-  if(restaurant==nullptr){
+  if (restaurant == nullptr) {
     return RESULT_OK;
   }
 
