@@ -19,7 +19,7 @@
 #include "customer.h"
 #include "wrapper.h"
 
-#define ENTERTAIN_PROBABILITY 0.05
+#define ENTERTAIN_PROBABILITY 0.2
 #define MAX_CUSTOMER_PATIENCE_CHANGE 20  // In percentual
 
 static void waiter_entertain_customer(Waiter* waiter) {

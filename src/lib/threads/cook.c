@@ -20,6 +20,12 @@
 static Result cook_select_next_ticket(Cook* cook,
                                       DishTicket** selected_dish_ticket,
                                       Vec* acquired_resources) {
+  if (atomic_load(&cook->wait_first_in_queue)) {
+    *selected_dish_ticket = queue_pop(&cook->dish_tickets);
+    atomic_store(&cook->wait_first_in_queue, false);
+    return RESULT_OK;
+  }
+
   for (FIFOQueueNode* node = cook->dish_tickets.head; node != nullptr;
        node = node->next) {
     DishTicket* dish_ticket = node->value;
@@ -53,9 +59,11 @@ static void cook_increase_resources_dirtiness(Cook* cook,
     int dirtiness = atomic_fetch_add(&kitchen_resource->dirtiness, 1);
 
     if (dirtiness > 0) {
+      pthread_mutex_lock(&cook->restaurant->mtx);
       double score =
           pow(2, dirtiness) * log2(1 + kitchen_resource->resource->clean_time);
-      atomic_fetch_sub(&cook->restaurant->score, ceil(score));
+      cook->restaurant->score -= (int)ceil(score);
+      pthread_mutex_unlock(&cook->restaurant->mtx);
     }
   }
 }
@@ -128,15 +136,14 @@ static Result cook_thread(void* void_cook) {
 
     if (result != RESULT_OK) {
       free(dish_ticket);
-      kitchen_drop_resources_dirty(&cook->restaurant->kitchen,
-                                   &acquired_resources);
-      return result;
+      goto cleanup;
     }
 
     if (dish_ticket == nullptr) {
       // Re-queue the dish tickets again.
       if (queued_time > 0) {
         restaurant_time_wait(cook->restaurant, 1);
+        atomic_store(&cook->wait_first_in_queue, true);
         sem_post(&cook->sem);
       }
       continue;
@@ -149,16 +156,16 @@ static Result cook_thread(void* void_cook) {
     result = waiter_assign(dish_ticket->waiter, dish_ticket);
     if (result != RESULT_OK) {
       free(dish_ticket);
-      // Cook dead, cannot wash plates.
-      kitchen_drop_resources_dirty(&cook->restaurant->kitchen,
-                                   &acquired_resources);
-      return result;
+      goto cleanup;
     }
 
     cook_increase_resources_dirtiness(cook, &acquired_resources);
 
     result = cook_wash_dirty_resources(cook, &acquired_resources);
+
+  cleanup:
     if (result != RESULT_OK) {
+      // Cook dead, cannot wash plates.
       kitchen_drop_resources_dirty(&cook->restaurant->kitchen,
                                    &acquired_resources);
       return result;
@@ -172,6 +179,7 @@ Result cook_init(Cook* cook, Restaurant* restaurant) {
   cook->restaurant = restaurant;
   cook->queued_time = 0;
   cook->queued_price = 0;
+  atomic_init(&cook->wait_first_in_queue, false);
   queue_init(&cook->dish_tickets, sizeof(DishTicket));
   pthread_mutex_init(&cook->mtx, nullptr);
   sem_init(&cook->sem, 0, 0);

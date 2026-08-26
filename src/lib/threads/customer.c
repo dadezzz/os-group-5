@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "../data/dishes/dishes.h"
 #include "../result.h"
@@ -16,16 +17,11 @@
 #define MAX_ADDITIONAL_PATIENCE 100  // in percentual
 #define WANTS_TO_ORDER_MAX_TICKS 10
 
+// Give back the plate even if the customer left. This is needed to remove old
+// customers from the front of restaurant.customers queue.
 void customer_serve(Customer* customer) {
   pthread_mutex_lock(&customer->mtx);
-
-  if (customer->has_left) {
-    pthread_mutex_unlock(&customer->mtx);
-    return;
-  }
-
   ++customer->dishes_served;
-
   pthread_mutex_unlock(&customer->mtx);
 }
 
@@ -52,8 +48,14 @@ static void customer_leave(Customer* customer) {
   customer->has_left = true;
   int score = customer_order_calculate_score(customer);
   pthread_mutex_unlock(&customer->mtx);
+
+  if (score < 0) {
+    ++customer->restaurant->left_unserved_customers;
+  }
+
   --customer->restaurant->present_customers;
-  atomic_fetch_add(&customer->restaurant->score, score);
+  fprintf(stderr, "customer left score: %d\n", score);
+  customer->restaurant->score += score;
   pthread_mutex_unlock(&customer->restaurant->mtx);
 }
 
