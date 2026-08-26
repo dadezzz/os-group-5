@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -22,8 +21,8 @@
 #include "lib/threads/customer.h"
 #include "lib/vec.h"
 
-#define PRINT_STATUS_INTERVAL 5         // in seconds
-#define CUSTOMER_MAX_SPAWN_INTERVAL 50  // in game ticks
+#define PRINT_STATUS_INTERVAL 5               // in seconds
+#define CUSTOMER_SPAWN_INTERVAL_MAX_TICKS 50  // in game ticks
 
 static double timespec_difference(struct timespec a, struct timespec b) {
   return (a.tv_sec - b.tv_sec) + (a.tv_nsec - b.tv_nsec) / 1e9;
@@ -218,7 +217,7 @@ int main() {
 
   unsigned int spawned_customers = 0;
   unsigned int next_customer_ticks =
-      rng_next_range(&restaurant.rng, 0, CUSTOMER_MAX_SPAWN_INTERVAL);
+      rng_next_range(&restaurant.rng, 0, CUSTOMER_SPAWN_INTERVAL_MAX_TICKS);
   struct timespec next_customer_at = now;
   timespec_add(&next_customer_at, next_customer_ticks, config.game_speed);
 
@@ -237,12 +236,17 @@ int main() {
         config_drop(&config);
         fprintf(stderr, "Something went wrong: %d\n", (int)result);
         return (int)result;
-      } else if (result == RESULT_OK) {
+      }
+
+      if (result == RESULT_OK) {
         ++spawned_customers;
-        next_customer_ticks =
-            rng_next_range(&restaurant.rng, 0, CUSTOMER_MAX_SPAWN_INTERVAL);
+        next_customer_ticks = rng_next_range(&restaurant.rng, 0,
+                                             CUSTOMER_SPAWN_INTERVAL_MAX_TICKS);
         next_customer_at = now;
         timespec_add(&next_customer_at, next_customer_ticks, config.game_speed);
+      } else {
+        // No customer spawned because restaurant was full.
+        result = RESULT_OK;
       }
     }
 
