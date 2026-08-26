@@ -77,7 +77,7 @@ static Result customer_thread(void* void_customer) {
     pthread_mutex_lock(&customer->mtx);
     ++customer->time_waiting;
 
-    if (customer->time_waiting >= customer->patience ||
+    if (customer->time_waiting > customer->patience ||
         customer->order_dishes.length == customer->dishes_served) {
       pthread_mutex_unlock(&customer->mtx);
       break;

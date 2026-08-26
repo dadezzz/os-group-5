@@ -115,10 +115,12 @@ bool restaurant_has_finished(Restaurant* restaurant) {
        node = node->next) {
     ++total_people;
   }
+
+  unsigned int present_customers = restaurant->present_customers;
   pthread_mutex_unlock(&restaurant->mtx);
 
   return total_people == restaurant->config->total_customers &&
-         restaurant->present_customers == 0;
+         present_customers == 0;
 }
 
 void restaurant_time_wait(Restaurant* restaurant, unsigned int units) {

@@ -18,9 +18,9 @@
 #include "waiter.h"
 #include "wrapper.h"
 
-static void cook_select_next_ticket(Cook* cook,
-                                    DishTicket** selected_dish_ticket,
-                                    Vec* acquired_resources) {
+static Result cook_select_next_ticket(Cook* cook,
+                                      DishTicket** selected_dish_ticket,
+                                      Vec* acquired_resources) {
   for (FIFOQueueNode* node = cook->dish_tickets.head; node != nullptr;
        node = node->next) {
     DishTicket* dish_ticket = node->value;
@@ -36,7 +36,13 @@ static void cook_select_next_ticket(Cook* cook,
       *selected_dish_ticket = dish_ticket;
       break;
     }
+
+    if (result != RESULT_REQUIREMENTS_UNAVAILABLE) {
+      return result;
+    }
   }
+
+  return RESULT_OK;
 }
 
 static void cook_increase_resources_dirtiness(Cook* cook,
@@ -116,9 +122,17 @@ static Result cook_thread(void* void_cook) {
     DishTicket* dish_ticket = nullptr;
     Vec acquired_resources;
     pthread_mutex_lock(&cook->mtx);
-    cook_select_next_ticket(cook, &dish_ticket, &acquired_resources);
-    int queued_time = cook->queued_time;
+    Result result =
+        cook_select_next_ticket(cook, &dish_ticket, &acquired_resources);
+    unsigned int queued_time = cook->queued_time;
     pthread_mutex_unlock(&cook->mtx);
+
+    if (result != RESULT_OK) {
+      free(dish_ticket);
+      kitchen_drop_resources_dirty(&cook->restaurant->kitchen,
+                                   &acquired_resources);
+      return result;
+    }
 
     if (dish_ticket == nullptr) {
       // Re-queue the dish tickets again.
@@ -133,7 +147,7 @@ static Result cook_thread(void* void_cook) {
     restaurant_time_wait(cook->restaurant, dish_ticket->dish->cook_time);
 
     // Give it to customer right away to maximize score.
-    Result result = waiter_assign(dish_ticket->waiter, dish_ticket);
+    result = waiter_assign(dish_ticket->waiter, dish_ticket);
     if (result != RESULT_OK) {
       free(dish_ticket);
       // Cook dead, cannot wash plates.
