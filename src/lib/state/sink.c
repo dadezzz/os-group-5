@@ -1,6 +1,6 @@
 #include "sink.h"
 
-#include <pthread.h>
+#include <semaphore.h>
 #include <stdatomic.h>
 #include <stddef.h>
 
@@ -9,13 +9,8 @@
 
 // Washes and also makes available all the dirty resources.
 void sink_wash_all(Sink* sink, Vec* dirty_resources) {
-  pthread_mutex_lock(&sink->mtx);
-  sink->waiting += dirty_resources->length;
-  while (sink->locked) {
-    pthread_cond_wait(&sink->signal, &sink->mtx);
-  }
-  sink->locked = true;
-  pthread_mutex_unlock(&sink->mtx);
+  atomic_fetch_add(&sink->waiting, dirty_resources->length);
+  sem_wait(&sink->locked);
 
   for (size_t i = 0; i < dirty_resources->length; ++i) {
     KitchenResource** resource_ref = vec_at(dirty_resources, i);
@@ -25,19 +20,14 @@ void sink_wash_all(Sink* sink, Vec* dirty_resources) {
     atomic_store(&resource->available, true);
   }
 
-  pthread_mutex_lock(&sink->mtx);
-  sink->waiting -= dirty_resources->length;
-  sink->locked = false;
-  pthread_cond_signal(&sink->signal);
-  pthread_mutex_unlock(&sink->mtx);
+  atomic_fetch_sub(&sink->waiting, dirty_resources->length);
+  sem_post(&sink->locked);
 }
 
 void sink_init(Sink* sink, Restaurant* restaurant) {
   sink->restaurant = restaurant;
-  sink->waiting = 0;
-  sink->locked = false;
-  pthread_mutex_init(&sink->mtx, nullptr);
-  pthread_cond_init(&sink->signal, nullptr);
+  atomic_init(&sink->waiting, 0);
+  sem_init(&sink->locked, 0, 1);
 }
 
 void sink_drop(Sink* sink) {
@@ -45,6 +35,5 @@ void sink_drop(Sink* sink) {
     return;
   }
 
-  pthread_cond_destroy(&sink->signal);
-  pthread_mutex_destroy(&sink->mtx);
+  sem_destroy(&sink->locked);
 }
