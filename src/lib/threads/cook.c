@@ -95,9 +95,7 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
   pthread_mutex_lock(&cook->mtx);
   double avg_queue_urgency = cook->queued_price / fmax(cook->queued_time, 1.0);
   pthread_mutex_unlock(&cook->mtx);
-  pthread_mutex_lock(&cook->restaurant->sink.mtx);
-  int waiting = cook->restaurant->sink.waiting;
-  pthread_mutex_unlock(&cook->restaurant->sink.mtx);
+  int waiting = atomic_load(&cook->restaurant->sink.waiting);
 
   for (size_t i = 0; i < acquired_resources->length; i++) {
     KitchenResource** kitchen_resource_ref = vec_at(acquired_resources, i);
