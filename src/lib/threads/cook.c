@@ -95,6 +95,9 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
   pthread_mutex_lock(&cook->mtx);
   double avg_queue_urgency = cook->queued_price / fmax(cook->queued_time, 1.0);
   pthread_mutex_unlock(&cook->mtx);
+  pthread_mutex_lock(&cook->restaurant->sink.mtx);
+  int waiting = cook->restaurant->sink.waiting;
+  pthread_mutex_unlock(&cook->restaurant->sink.mtx);
 
   for (size_t i = 0; i < acquired_resources->length; i++) {
     KitchenResource** kitchen_resource_ref = vec_at(acquired_resources, i);
@@ -105,8 +108,8 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
     double next_dirty_cost =
         pow(2, dirtiness) * log2(1 + kitchen_resource->resource->clean_time);
 
-    int waiting = atomic_load(&cook->restaurant->sink.waiting);
-    int wash_delay = kitchen_resource->resource->clean_time * (waiting + 1);
+    int wash_delay = kitchen_resource->resource->clean_time *
+                     (waiting + dirty_resources.length + 1);
     double clean_cost = wash_delay * avg_queue_urgency;
 
     if (next_dirty_cost > clean_cost) {
@@ -120,12 +123,7 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
   vec_drop(acquired_resources, nullptr);
 
   // Wash all dirty resources and free them right away.
-  for (size_t i = 0; i < dirty_resources.length; i++) {
-    KitchenResource** kitchen_resource_ref = vec_at(&dirty_resources, i);
-    KitchenResource* kitchen_resource = *kitchen_resource_ref;
-    sink_wash(&cook->restaurant->sink, kitchen_resource);
-    atomic_store(&kitchen_resource->available, true);
-  }
+  sink_wash_all(&cook->restaurant->sink, &dirty_resources);
   vec_drop(&dirty_resources, nullptr);
 
   return RESULT_OK;
