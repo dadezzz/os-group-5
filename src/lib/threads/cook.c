@@ -67,11 +67,11 @@ static void cook_increase_resources_dirtiness(Cook* cook,
     KitchenResource** kitchen_resource_ref = vec_at(acquired_resources, i);
     KitchenResource* kitchen_resource = *kitchen_resource_ref;
 
-    int dirtiness = atomic_fetch_add(&kitchen_resource->dirtiness, 1);
+    kitchen_resource->dirtiness += 1;
 
-    if (dirtiness > 0) {
-      total_score -=
-          pow(2, dirtiness) * log2(1 + kitchen_resource->resource->clean_time);
+    if (kitchen_resource->dirtiness > 0) {
+      total_score -= pow(2, kitchen_resource->dirtiness) *
+                     log2(1 + kitchen_resource->resource->clean_time);
     }
   }
 
