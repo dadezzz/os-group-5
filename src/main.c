@@ -63,8 +63,7 @@ static Result main_loop(Restaurant* restaurant) {
     --next_status_ticks;
 
     // Loop every hundredth of a second (for game speed = 1).
-    usleep((unsigned int)(1e4 / restaurant->config->game_speed));
-    // restaurant_time_wait(restaurant, 1);
+    restaurant_time_wait(restaurant, 1);
   }
 
   return result;
