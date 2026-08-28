@@ -77,7 +77,7 @@ static void cook_increase_resources_dirtiness(Cook* cook,
 
   // Lock once, not for every resource.
   pthread_mutex_lock(&cook->restaurant->mtx);
-  cook->restaurant->score -= (int)ceil(total_score);
+  cook->restaurant->score += (int)ceil(total_score);
   pthread_mutex_unlock(&cook->restaurant->mtx);
 }
 
