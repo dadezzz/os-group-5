@@ -16,8 +16,8 @@
 #include "lib/status.h"
 #include "lib/vec.h"
 
-#define PRINT_STATUS_INTERVAL_TICKS 5000       // ~50 seconds at game speed 1
-#define CUSTOMER_SPAWN_INTERVAL_MAX_TICKS 500  // in game ticks
+#define PRINT_STATUS_INTERVAL_TICKS 50        // ~50 seconds at game speed 1
+#define CUSTOMER_SPAWN_INTERVAL_MAX_TICKS 10  // in game ticks
 
 static Result main_loop(Restaurant* restaurant) {
   int next_customer_ticks =
@@ -62,9 +62,7 @@ static Result main_loop(Restaurant* restaurant) {
     --next_customer_ticks;
     --next_status_ticks;
 
-    // Loop every hundredth of a second (for game speed = 1).
-    usleep((unsigned int)(1e4 / restaurant->config->game_speed));
-    // restaurant_time_wait(restaurant, 1);
+    restaurant_time_wait(restaurant, 1);
   }
 
   return result;
