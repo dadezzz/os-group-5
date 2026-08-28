@@ -116,8 +116,6 @@ static Result waiter_take_order(Waiter* waiter, Customer* customer) {
 
       // This dish delays everything already queued here by cook_time;
       // queued_price / queued_time is that queue's value per unit of time.
-      // Divide by 2 because the dish might still be completed at the end of the
-      // queue and so we take the average.
       double others_cost =
           dish->cook_time * queued_price / fmax(queued_time, 1.0);
 

@@ -101,13 +101,12 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
     KitchenResource** kitchen_resource_ref = vec_at(acquired_resources, i);
     KitchenResource* kitchen_resource = *kitchen_resource_ref;
 
-    int dirtiness = atomic_load(&kitchen_resource->dirtiness);
-
-    double next_dirty_cost =
-        pow(2, dirtiness) * log2(1 + kitchen_resource->resource->clean_time);
+    double next_dirty_cost = pow(2, kitchen_resource->dirtiness) *
+                             log2(1 + kitchen_resource->resource->clean_time);
 
     int wash_delay = kitchen_resource->resource->clean_time *
                      (waiting + dirty_resources.length + 1);
+
     double clean_cost = wash_delay * avg_queue_urgency;
 
     if (next_dirty_cost > clean_cost) {
@@ -133,7 +132,7 @@ static void cook_drop_resources_dirty(Vec* acquired) {
     KitchenResource* kitchen_resource = *kitchen_resource_ref;
     // Resource still exclusively held by the cook, so it's safe to modify
     // the value without affecting calculations in other places.
-    atomic_fetch_add(&kitchen_resource->dirtiness, 1);
+    kitchen_resource->dirtiness = 1;
     atomic_store(&kitchen_resource->available, true);
   }
 
