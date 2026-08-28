@@ -64,7 +64,7 @@ cleanup:
     for (size_t i = 0; i < acquired->length; ++i) {
       KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
       KitchenResource* kitchen_resource = *kitchen_resource_ref;
-      atomic_store(&kitchen_resource->available, false);
+      atomic_store(&kitchen_resource->available, true);
     }
     vec_drop(acquired, nullptr);
   }
