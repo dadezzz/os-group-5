@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -71,7 +70,7 @@ static Result main_loop(Restaurant* restaurant) {
 int main() {
   Result result = RESULT_OK;
 
-  Config config;
+  Config config = {};
   result = config_load(&config);
   if (result != RESULT_OK) {
     goto cleanup_config;
@@ -94,12 +93,6 @@ int main() {
   Restaurant restaurant;
   result = restaurant_init(&restaurant, &config, &resources, &dishes);
   if (result != RESULT_OK) {
-    goto cleanup_restaurant;
-  }
-
-  int tmp = mkdir("/tmp", 0775);
-  if (tmp != 0 && errno != EEXIST) {
-    result = RESULT_MKDIR_FAILED;
     goto cleanup_restaurant;
   }
 

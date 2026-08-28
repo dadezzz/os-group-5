@@ -29,7 +29,7 @@ build/objects/%.o: code/%.c
 
 # Clean the build/ dir and tmp pid file.
 clean:
-	@rm -r build/ /tmp/restaurant.pid
+	@rm -rf build/ /tmp/restaurant.pid
 
 # Run ./bootstrap.sh, optionally with args passed via ARGS
 run:

@@ -13,7 +13,7 @@ static Result parse_requirement(const char* requirement_str,
                                 Requirement* requirement,
                                 Vec* resources  // Vec<Resource>
 ) {
-  char* name;
+  char* name = nullptr;
   size_t name_bytes = read_str_until_char(requirement_str, &name, ':');
 
   // Return error if the first character was ':' or there was no name.

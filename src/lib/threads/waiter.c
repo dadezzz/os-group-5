@@ -43,10 +43,10 @@ static void waiter_entertain_customer(Waiter* waiter) {
 
     pthread_mutex_unlock(&customer->mtx);
   }
-  pthread_mutex_unlock(&waiter->restaurant->mtx);
 
   // Queue was empty.
   if (selected_customer == nullptr) {
+    pthread_mutex_unlock(&waiter->restaurant->mtx);
     return;
   }
 
@@ -56,6 +56,7 @@ static void waiter_entertain_customer(Waiter* waiter) {
       (rng_next_range(&waiter->rng, 0, MAX_CUSTOMER_PATIENCE_CHANGE) -
        (MAX_CUSTOMER_PATIENCE_CHANGE / 2.0));
   pthread_mutex_unlock(&selected_customer->mtx);
+  pthread_mutex_unlock(&waiter->restaurant->mtx);
 }
 
 static void waiter_get_customer_with_order(Waiter* waiter,
