@@ -11,7 +11,9 @@ typedef struct DishTicket DishTicket;
 typedef struct {
   Resource* resource;
   atomic_bool available;
-  atomic_int dirtiness;
+  // Doesn't need to be atomic since it's always updated and read by one cook at
+  // a time while available is false.
+  int dirtiness;
 } KitchenResource;
 
 typedef struct {

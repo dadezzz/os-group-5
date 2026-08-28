@@ -125,8 +125,8 @@ Result kitchen_init(Kitchen* kitchen, Vec* resources  // Vec<Resource>
     for (int j = 0; j < resource->quantity; j++) {
       KitchenResource kitchen_resource;
       kitchen_resource.resource = resource;
+      kitchen_resource.dirtiness = 0;
       atomic_init(&kitchen_resource.available, true);
-      atomic_init(&kitchen_resource.dirtiness, 0);
 
       Result result = vec_push(&kitchen->resources, &kitchen_resource);
       if (result != RESULT_OK) {

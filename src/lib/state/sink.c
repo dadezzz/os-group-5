@@ -16,7 +16,7 @@ void sink_wash_all(Sink* sink, Vec* dirty_resources) {
     KitchenResource** resource_ref = vec_at(dirty_resources, i);
     KitchenResource* resource = *resource_ref;
     restaurant_time_wait(sink->restaurant, resource->resource->clean_time);
-    atomic_store(&resource->dirtiness, 0);
+    resource->dirtiness = 0;
     atomic_store(&resource->available, true);
   }
 
