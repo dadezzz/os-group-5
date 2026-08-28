@@ -40,7 +40,6 @@ Result restaurant_init(Restaurant* restaurant,
   restaurant->spawned_customers = 0;
   restaurant->left_unserved_customers = 0;
 
-
   return kitchen_init(&restaurant->kitchen, resources);
 }
 
