@@ -25,6 +25,7 @@ static Result cook_select_next_ticket(Cook* cook,
   FIFOQueueNode* node;
   FIFOQueueNode* best_node = nullptr;
   double best_score = -1;
+  bool empty = queue_is_empty(&cook->dish_tickets);
   for (node = cook->dish_tickets.head; node != nullptr; node = node->next) {
     DishTicket* dish_ticket = node->value;
     double score = kitchen_calculate_contention_score(
@@ -35,11 +36,12 @@ static Result cook_select_next_ticket(Cook* cook,
       best_node = node;
     }
   }
+
   pthread_mutex_unlock(&cook->mtx);
 
   // Queue empty.
   if (best_node == nullptr) {
-    return RESULT_OK;
+    return empty ? RESULT_OK : RESULT_REQUIREMENTS_UNAVAILABLE;
   }
 
   DishTicket* dish_ticket = best_node->value;
@@ -67,18 +69,31 @@ static void cook_increase_resources_dirtiness(Cook* cook,
     KitchenResource** kitchen_resource_ref = vec_at(acquired_resources, i);
     KitchenResource* kitchen_resource = *kitchen_resource_ref;
 
-    kitchen_resource->dirtiness += 1;
-
     if (kitchen_resource->dirtiness > 0) {
       total_score -= pow(2, kitchen_resource->dirtiness) *
                      log2(1 + kitchen_resource->resource->clean_time);
     }
+
+    kitchen_resource->dirtiness += 1;
   }
 
   // Lock once, not for every resource.
   pthread_mutex_lock(&cook->restaurant->mtx);
-  cook->restaurant->score -= (int)ceil(total_score);
+  cook->restaurant->score += (int)ceil(total_score);
   pthread_mutex_unlock(&cook->restaurant->mtx);
+}
+
+static void cook_drop_resources_dirty(Vec* acquired) {
+  for (size_t i = 0; i < acquired->length; i++) {
+    KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
+    KitchenResource* kitchen_resource = *kitchen_resource_ref;
+    // Resource still exclusively held by the cook, so it's safe to modify
+    // the value without affecting calculations in other places.
+    kitchen_resource->dirtiness = 1;
+    atomic_store(&kitchen_resource->available, true);
+  }
+
+  vec_drop(acquired, nullptr);
 }
 
 static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
@@ -89,6 +104,7 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
   // handling easier.
   Result result = vec_reserve(&dirty_resources, acquired_resources->length);
   if (result != RESULT_OK) {
+    cook_drop_resources_dirty(acquired_resources);
     return result;
   }
 
@@ -124,19 +140,6 @@ static Result cook_wash_dirty_resources(Cook* cook, Vec* acquired_resources) {
   vec_drop(&dirty_resources, nullptr);
 
   return RESULT_OK;
-}
-
-static void cook_drop_resources_dirty(Vec* acquired) {
-  for (size_t i = 0; i < acquired->length; i++) {
-    KitchenResource** kitchen_resource_ref = vec_at(acquired, i);
-    KitchenResource* kitchen_resource = *kitchen_resource_ref;
-    // Resource still exclusively held by the cook, so it's safe to modify
-    // the value without affecting calculations in other places.
-    kitchen_resource->dirtiness = 1;
-    atomic_store(&kitchen_resource->available, true);
-  }
-
-  vec_drop(acquired, nullptr);
 }
 
 static Result cook_thread(void* void_cook) {

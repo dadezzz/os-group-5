@@ -23,19 +23,12 @@ Result restaurant_init(Restaurant* restaurant,
                        Vec* resources,  // Vec<Resource>
                        Vec* dishes      // Vec<Dish>
 ) {
-  Result result = RESULT_OK;
-
   restaurant->score = 0;
   restaurant->config = config;
   restaurant->dishes = dishes;
   atomic_init(&restaurant->is_closing, false);
 
   pthread_mutex_init(&restaurant->mtx, nullptr);
-
-  result = kitchen_init(&restaurant->kitchen, resources);
-  if (result != RESULT_OK) {
-    return result;
-  }
 
   sink_init(&restaurant->sink, restaurant);
   rng_init_main(&restaurant->rng, config->random_seed);
@@ -47,7 +40,8 @@ Result restaurant_init(Restaurant* restaurant,
   restaurant->spawned_customers = 0;
   restaurant->left_unserved_customers = 0;
 
-  return RESULT_OK;
+
+  return kitchen_init(&restaurant->kitchen, resources);
 }
 
 Result restaurant_spawn_cooks(Restaurant* restaurant, size_t quantity) {
@@ -92,10 +86,12 @@ Result restaurant_spawn_customer(Restaurant* restaurant) {
   Result result = queue_push_last(&restaurant->customers, nullptr);
 
   if (result == RESULT_OK) {
-    ++restaurant->present_customers;
-    ++restaurant->spawned_customers;
     Customer* customer = restaurant->customers.tail->value;
     result = customer_init(customer, restaurant);
+  }
+  if (result == RESULT_OK) {
+    ++restaurant->present_customers;
+    ++restaurant->spawned_customers;
   }
 
   pthread_mutex_unlock(&restaurant->mtx);
