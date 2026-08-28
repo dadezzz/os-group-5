@@ -16,7 +16,7 @@
 #include "lib/status.h"
 #include "lib/vec.h"
 
-#define PRINT_STATUS_INTERVAL_TICKS 50       // ~50 seconds at game speed 1
+#define PRINT_STATUS_INTERVAL_TICKS 50        // ~50 seconds at game speed 1
 #define CUSTOMER_SPAWN_INTERVAL_MAX_TICKS 10  // in game ticks
 
 static Result main_loop(Restaurant* restaurant) {
