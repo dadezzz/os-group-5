@@ -99,8 +99,7 @@ submission: easy.mk .env.example $(ALL_SOURCES)
 	@cp -vr src/ submission/code/ -r
 	@rm submission/code/bootstrap.sh
 	@rm submission/code/status.sh
-	# TODO
-	@# cp report.pdf submission/
+	@cp report.pdf submission/
 
 format: clang-format/fix
 	npx prettier -w .
